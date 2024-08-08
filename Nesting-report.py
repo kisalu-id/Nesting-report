@@ -19,34 +19,56 @@ def nesting_report():
     count efficiency, write css and html
     """
     do_debug()
-    ini_path = ewd.explode_file_path(r'C:\Users\...\Nesting_report\config_nr.ini')
-    config = configparser.ConfigParser()
-    config.read(ini_path)
-    rotate = config.get('Einstellung', 'turn')
-    rotate = False if rotate == "0" else True
+    config_nr.run_config()
+    try:
+        ini_path = ewd.explode_file_path(r'%MACHPATH%\script\config_nr.ini')
 
-    project_name = ewd.get_project_name() # get the name of the opened ewd project
+        config = configparser.ConfigParser()
+        config.read(ini_path)
+
+        rotate = config.get('Einstellung', 'rotate') #if True, rotate
+        rotate = False if rotate == "0" or rotate =="False" else True
+
+        #if checked, delete the previous folder with the same name
+        delete_folder =  config.get('Einstellung', 'delete_folder')
+        delete_folder = False if delete_folder == "0" or delete_folder =="False" else True
+
+        #path for the folder
+        general_folder =  config.get('Pfad', 'report_pfad') # report_pfad=C:\ProgramData\...\Temp !!
+        #create new unique folder
+        general_folder = os.path.join(general_folder, 'Report_new')
+        # - regardless of the user choice, there will be  created a new folde, that will only have report files, that are safe to delete
+
+        nice_design = config.get('Druckeinstellungen', 'nice_design') #if True, nice_design
+        nice_design = False if nice_design == "0" or nice_design =="False" else True
+
+        reports_pdfs_together = config.get('Druckeinstellungen', 'reports_pdfs_together') #if True, reports_pdfs_together
+        reports_pdfs_together = False if reports_pdfs_together == "0" or reports_pdfs_together =="False" else True
+
+        only_measures_BW = config.get('Druckeinstellungen', 'only_measures_BW') #if True, only_measures_BW
+        only_measures_BW = False if only_measures_BW == "0" or only_measures_BW =="False" else True
+
+
+    except FileNotFoundError:
+        dlg.output_box('Fehler: Die Konfigurationsdatei "config_nr.ini" wurde nicht gefunden. Bitte überprüfen Sie den Dateipfad.')
+    except configparser.NoSectionError:
+        dlg.output_box("Fehler: Die Sektion 'Pfad' fehlt in der Konfigurationsdatei.")
+    except configparser.NoOptionError:
+        dlg.output_box("Fehler: Die Option 'report_pfad' fehlt in der Sektion 'Pfad'.")
+    except KeyError as e:
+        dlg.output_box(f"Konfigurationsparameter nicht gefunden: {e}")
+    except ValueError as e:
+        dlg.output_box(f"Ungültiger Wert für den Konfigurationsparameter: {e}")
+    except Exception as e:
+        dlg.output_box(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
+
+
+    ###if project is not saved --> save it in temp folder in the prgram or in a temp dircetory in the config file
+    project_name = ewd.get_project_name() #get the name of the opened ewd project
     if not project_name.endswith (".ewd"):
-        ewd.save_project("%TEMPPATH%") # C:\ProgramData\company\...\Temp
-    
-    #path for the print files
-    general_folder =  config.get('Pfad', 'report_pfad') # report_pfad=C:\ProgramData\company\... !!
-    general_folder = os.path.join(general_folder, 'Report_new') #so whatever folder user chooses, i will create a new folder there that will have only report files that are safe to delete
-
-#subfolder with project name, delete it, if it exists (?ig?) and create new folder (so the date of creation of this folder on pc will be fresh -> ez to sort)
-    folder = os.path.join(general_folder, f'{os.path.splitext(project_name)[0]}')
-
-    #if folder doesn't exist, create
-    if not os.path.exists(folder):
-        dlg.output_box(f"Der Inhalt von Ordner {folder} wird gelöscht")
-        #add "ok" and "cancel"
-        os.makedirs(folder, exist_ok=False)
-    
-    #iterate through each file and remove it
-    file_in_folder = next(os.walk(folder))[2][0] if os.listdir(folder) else ""
-    while (file_in_folder != ""):
-            os.remove(os.path.join(folder, file_in_folder))
-            file_in_folder = next(os.walk(folder))[2][0] if os.listdir(folder) else ""
+        project_name = datetime.datetime.now().strftime("%Y_%m_%d_%H-%M")
+        ewd.save_project(ewd.explode_file_path(f"%TEMPPATH%//{project_name}.ewd")) # C:\ProgramData\...\Temp
+        project_name = f"{project_name}.ewd"
 
     report_file = f'{folder}\\report.html'
     #if not os.path.isfile(report_file):
