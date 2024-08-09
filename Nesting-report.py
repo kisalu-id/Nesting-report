@@ -34,7 +34,7 @@ def nesting_report():
         delete_folder = False if delete_folder == "0" or delete_folder =="False" else True
 
         #path for the folder
-        general_folder =  config.get('Pfad', 'report_pfad') # report_pfad=C:\ProgramData\...\Temp !!
+        general_folder =  config.get('Pfad', 'report_pfad')
         #create new unique folder
         general_folder = os.path.join(general_folder, 'Report_new')
         # - regardless of the user choice, there will be  created a new folde, that will only have report files, that are safe to delete
@@ -63,47 +63,66 @@ def nesting_report():
         dlg.output_box(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
 
 
-    ###if project is not saved --> save it in temp folder in the prgram or in a temp dircetory in the config file
+    ###if project is not saved --> save it in temp folder in program or in a temp dircetory in the config file
     project_name = ewd.get_project_name() #get the name of the opened ewd project
     if not project_name.endswith (".ewd"):
         project_name = datetime.datetime.now().strftime("%Y_%m_%d_%H-%M")
-        ewd.save_project(ewd.explode_file_path(f"%TEMPPATH%//{project_name}.ewd")) # C:\ProgramData\...\Temp
+        ewd.save_project(ewd.explode_file_path(f"%TEMPPATH%//{project_name}.ewd")) 
         project_name = f"{project_name}.ewd"
 
-    report_file = f'{folder}\\report.html'
-    #if not os.path.isfile(report_file):
-    os.makedirs(os.path.dirname(report_file), exist_ok=True)
+    #subfolder with the project name: it will be deleted, if it already exists, then the new folder will be created
+    #(so the date of creation of this folder on user's pc will be fresh -> easy to sort)
+    folder = os.path.join(general_folder, f'{os.path.splitext(project_name)[0]}')
 
+    #if folder exists and user set this setting, delete
+    if delete_folder and os.path.exists(folder):
+        #add "ok" and "cancel"
+        remove_existing_folder_with_same_name(folder)
+
+    else: #if folder doesn't exist, create
+        try:
+            os.makedirs(folder, exist_ok=False)
+        except OSError as e:
+            dlg.output_box(f"Fehler beim Ordner erstellen in {folder}")
+
+
+    report_file = f'{folder}\\report.html'
+    try:
+        os.makedirs(os.path.dirname(report_file), exist_ok=True)
+    except OSError as e:
+        dlg.output_box(f"Fehler beim Ordner erstellen in {os.path.dirname(report_file)}")
+
+        ### better code would proably to use a .join function later instead of adding the //
     if not folder.endswith("\\"):
         os.path.join(folder, '')
     img_ext = ".jpg"
 
-    logo = (f"file:///{report_file}\\logo1.png") #URL
+    logo = "C:/ProgramData/.../logo_black.png"
 
     #switch to top view; wireframe
     view.set_std_view_eye()
     exec_bool("SetWireFrame")
+    # exec_bool("SetShading")
 
-    with open(report_file, 'w', encoding='utf-8') as html_file:
-
+    try:
+        with open(report_file, 'w', encoding='utf-8') as html_file:
             #HTML header and file name
             html_header_write(html_file, project_name)
-        
-            nest.activate()
-            sheets = nest.get_sheets()
 
+            write_css(html_file)
+            sheets = nest.get_sheets()
+            count = 0
             for sheet in sheets:
                 if rotate: #rotate sheets by 90 degrees
                     cad.rotate(sheet, 0, 0, -90, False)
 
             sheets = nest.get_sheets()
-            count = 0
             total_area = 0        # m2
             total_garbage = 0     # %
             total_reusable = 0    # %
             for sheet in sheets:
                 #name of the jpg
-                img_path = f"{folder}\\{sheet}{img_ext}"
+                img_path = f"{folder}//{sheet}{img_ext}"
                 area = nest.get_sheet_property(sheet, nest.SheetProperties.AREA)                 #_NSheetArea
                 curr1 = nest.get_sheet_property(sheet, nest.SheetProperties.RATE_LEFT_OVER)      #_NSheetRateLeftOver  % of sheet   garbage not reusable material
                 curr2 = nest.get_sheet_property(sheet, nest.SheetProperties.RATE_REUSABLE)       #_NSheetRateReusable  % of sheet   reusable material
@@ -111,46 +130,54 @@ def nesting_report():
                 total_area += area        # m2
                 total_garbage += curr1    # %
                 total_reusable += curr2   # %
-                    ### maybe cool config parameter if we want the values in m2 or mm2 etc
-
-                #change_label_into_id(sheet) #??? how
-                    ### not sure if its really needed, the function seems to just take the piece id from the layer names (P7_Lay2) --> 7 and write that as a text on there somewhere, maybe its just to see the number better?
 
                 object_path = groups.get_current()
 
                 #get_project_path
                 if not os.path.isfile(img_path):
-                    os.makedirs(os.path.dirname(img_path), exist_ok=True)  #do i for sure need that?
-                        ### seems unnecessary maybe, but it cant do hard so why not
-                        #SetShading
-
-
-
-
-
-
-
-
-
-
-
+                    os.makedirs(os.path.dirname(img_path), exist_ok=True) 
 
                 view.zoom_on_object(object_path, ratio=1)
-                nest.get_sheet_preview(sheet, img_path, 0.35) # 0.35 so lines will be thicker
-
-                write_css(html_file)
+                nest.get_sheet_preview(sheet, img_path, 0.35) # 0.35, so lines will be thicker
 
                 #all the html, incl. efficiency
                 write_html(html_file, logo, project_name, sheet, sheets, count, total_area, curr1, curr2, total_reusable, total_garbage, img_path, area)
-
+                count += 1
+                
                 if rotate:
                     cad.rotate(sheet, 0, 0, 90, False)
 
-                # ProgressClose() ;    close progressbar
-                # SetShading() ;      Set the view as shaded
+            insert_java_script(html_file, count)
+            #close HTML
+            line = '</BODY></HTML>'
+            html_file.write(line)
 
-                #to_pdf(report_file, folder)
 
+        try:
+            to_pdf(report_file, folder)
+        except Exception as e:
+            dlg.output_box(f" :C {e}")
+
+    except IOError as e:
+        dlg.output_box(f"Ein Fehler ist beim Schreiben der Datei '{report_file}' aufgetreten: {e}")
+
+
+
+def remove_existing_folder_with_same_name(folder):
+    try:
+        if os.path.exists(folder):
+            dlg.output_box(f"Der Ordner '{folder}' und sein Inhalt werden gelöscht")
+            #add ok / cancel - config
+            for root, dirs, files in os.walk(folder, topdown=False):
+                for name in files:
+                    os.remove(os.path.join(root, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
+            os.rmdir(folder)
+        else:
+            dlg.output_box(f"Der Ordner '{folder}' existiert nicht.")
+    except Exception as e:
+        dlg.output_box(f"Ein Fehler ist aufgetreten: {e}")
 
 
 def html_header_write(html_file, project_name):
@@ -172,7 +199,7 @@ def html_header_write(html_file, project_name):
     """)
 
 
-def write_css(file):  
+def write_css(file):   #here I could do a fancier design, if that would be a good idea
     """
     :param file: the name of the HTML file to write the CSS into
     :type file: str
@@ -180,12 +207,16 @@ def write_css(file):
 
     line = """
 
+
     <STYLE>
+        body {
+            font-family: sans-serif;
+            margin-left: 15px
+        }
 
         table {
             border: 1px solid rgb(186, 186, 186);
-            margin: 10px 0;
-
+            margin-bottom: 10px;
             /* border-collapse: collapse;   uncomment for a singular line border*/
         }
 
@@ -193,13 +224,8 @@ def write_css(file):
             border: 1px solid black;
             text-align: left;
             font-weight: normal;
-            padding: 2px;
-            /*box-shadow: 3px 3px 3px 3px rgba(86, 167, 101, 1); Example box shadow */
-
-            margin-bottom: 10px; /* Spacing between items */
-            /* background-color: rgba(106, 191, 74, 0.5);
-            color: rgb(186, 186, 186) */
-            background-color: rgba(186, 186, 186, 0.156);
+            padding: 3px;
+            background-color: rgba(186, 186, 186, 0.17);
             border-radius: 2px;
             border-color: #bababa;
         }
@@ -211,12 +237,12 @@ def write_css(file):
             font-size: 22px;
             padding: 3px;
             text-align: center;
+            font-weight: 500;
         }
         #thick-border td, 
         #thick-border th {
             padding: 5px;
             font-size: 18px;
-            border-color: #bababa;
         }
 
         .green {
@@ -225,6 +251,11 @@ def write_css(file):
 
         .grey {
             background-color: rgba(186, 186, 186, 0.632);
+        }
+        
+        .right-align {
+            text-align: right;
+            font-size: 20px;
         }
 
     </STYLE>
@@ -265,23 +296,18 @@ def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1
     material = nest.get_sheet_property(sheet, nest.SheetProperties.MATERIAL)         #_NSheetMaterial
     width = nest.get_sheet_property(sheet, nest.SheetProperties.WIDTH)               #_NSheetWidth
     height = nest.get_sheet_property(sheet, nest.SheetProperties.HEIGHT)             #_NSheetHeight
+    current_date = datetime.datetime.now().strftime("%d.%m.%Y")
 
     line = """
     </HEAD>
     <BODY>
     """
 
-    if count != 0:
-        line += ' style="page-break-before:always"'
-    file.write(line)
-
-    #table for customer information - header row
-    line = "<DIV>"
-
-    #doesnt work :C
-    if logo:
-        line += f'<IMG src="{logo}">'
-    line += f'    <SPAN style="font-size: 35px; margin-left: 10px;">Projekt: {os.path.splitext(project_name)[0]}</SPAN>    </DIV>'
+    if count == 0:
+        line += '<DIV style="display: flex; align-items: center;">'
+        line += f'<IMG src="file:///{logo}" alt="Logo" width="70" height="70">'
+        line += f'<SPAN style="font-size: 35px; margin-left: 20px; align-self: auto;">Projekt: {os.path.splitext(project_name)[0]}</SPAN>'
+        line += '</DIV>'
 
     file.write(line)
 
@@ -290,14 +316,12 @@ def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1
     file.write(line)
 
     #row with sheet name
-    line = f'<TR> <TD style="font-size:30px" colspan="6">{sheet}</TD>'
+    line = f'<TR><TD style="font-size:30px" colspan="6">{sheet}</TD>'
 
-    count += 1
     s_count = str(count).zfill(3)
 
-    #adding the barcode
-    line += f'<TD id="code{s_count}" colspan="4" class="barcode">{sheet.upper()}</TD>'
-    line += '</TR>'
+    #adding the date
+    line += f'<TD colspan="4" class="right-align">{current_date}</TD></TR>'
     file.write(line)
 
     #sheet information - width, height, thickness, name, material
@@ -349,13 +373,7 @@ def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1
     line = '</TABLE></BR>'
     file.write(line)
 
-    count += 1
 
-    insert_java_script(file, count)
-
-    #close HTML
-    line = '</BODY></HTML>'
-    file.write(line)
 
 
 def count_efficiency(file, sheet, sheets, pieces, total_area, curr1, curr2, total_reusable, total_garbage, area):
@@ -386,7 +404,7 @@ def count_efficiency(file, sheet, sheets, pieces, total_area, curr1, curr2, tota
 
     #    autocam_aktivieren = config.get('SETTINGS', 'autocam_aktivieren')
     #    if autocam_aktivieren:
-    sheets = nest.get_sheets() 
+    sheets = nest.get_sheets() #do i need that?.. or then delete an argument to this function
 
     if sheet:
         efficiency_for_sheet(file, pieces, area, curr1, curr2)
@@ -419,12 +437,11 @@ def efficiency_for_sheet(html_file, pieces, area, curr1, curr2):
         <TH colspan="3" class="center-text">Effizienzbericht</TH>
         <TR>
             <TD>Gutteile</TD>
-            <TH colspan="2" align="left" class="green">{int(pieces)}</TH>
+            <TH colspan="2" align="left">{int(pieces)}</TH>
         </TR>
         <TR>
             <TD>Fläche der Platte</TD>
-            <TH colspan="2" align="left" class="green">{round(area, 2)} m²</TH>
-            <TD>{round(area, 2)}  m²</TD>
+            <TH colspan="2" align="left">{round(area, 2)} m²</TH>
         </TR>
         <TR>
             <TD class="green">Wiederverwendbares Material</TD>
@@ -467,14 +484,14 @@ def efficiency_sheets_total(html_file, number_of_sheets, total_area, total_reusa
             </TR>
 
             <TR>
-                <TD class="green">Gesamtfläche</TD>
-                <TH colspan="2" align="left" class="green">{round(total_area, 2)} m²</TH>
+                <TD>Gesamtfläche</TD>
+                <TH colspan="2" align="left">{round(total_area, 2)} m²</TH>
             </TR>
 
 
             <TR>
-                <TD>Gesamt wiederverwendbares Material</TD>
-                <TH colspan="2" align="left">{round(total_area * total_reusable / 100 / number_of_sheets, 2)} m²</TH>
+                <TD class="green">Gesamt wiederverwendbares Material</TD>
+                <TH colspan="2" align="left" class="green">{round(total_area * total_reusable / 100 / number_of_sheets, 2)} m²</TH>
             </TR>            
             <TR>
                 <TD class="grey">Gesamt nicht wiederverwendbares Material</TD>
@@ -524,16 +541,7 @@ def insert_java_script(file, count):
             });
         }
     };
-    """
-    file.write(line)
 
-    while(count > 0):
-        s_count = str(count).zfill(3)
-        line = f'get_object("code{s_count}").innerHTML = DrawHTMLBarcode_Code39(get_object("code{s_count}").innerHTML, 0, "yes", "in", 0, 3, 0.4, 3, "top", "center", "", "black", "white");\n'
-        file.write(line)
-        count -= 1
-
-    line = """
     /* ]]> */
     </SCRIPT>
     """
@@ -541,7 +549,10 @@ def insert_java_script(file, count):
 
 
 
-# def to_pdf(report_file, folder):
+
+
+
+def to_pdf(report_file, folder):
     """
     Convert HTML to PDF
 
@@ -550,10 +561,10 @@ def insert_java_script(file, count):
     :param folder: the directory where the PDF will be saved
     :type folder: str
     """
-#     path_to_wkhtmltopdf = r'C:\Program Files\companyProg\Bundles\wkhtmltopdf.exe'
-#     config = pdfkit.configuration(wkhtmltopdf = path_to_wkhtmltopdf)
-#     pdfkit.from_file(report_file, output_path = f'{folder}\report.pdf', configuration = config)
-
+    do_debug()
+    subprocess.call([path_to_wkhtmltopdf])
+    #sclcore.execute_file(report_file, folder)
+    path_to_wkhtmltopdf
 
 
 
