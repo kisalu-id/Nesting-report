@@ -206,9 +206,7 @@ def write_css(file):   #here I could do a fancier design, if that would be a goo
     """
 
     line = """
-
-
-    <STYLE>
+<STYLE>
         body {
             font-family: sans-serif;
             margin-left: 15px
@@ -218,6 +216,19 @@ def write_css(file):   #here I could do a fancier design, if that would be a goo
             border: 1px solid rgb(186, 186, 186);
             margin-bottom: 10px;
             /* border-collapse: collapse;   uncomment for a singular line border*/
+        }
+
+        .table-container {
+            display: inline-block;
+        }
+
+        #mainTable {
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .adjustable-table {
+            width: 100%;
         }
 
         th, td {
@@ -259,6 +270,8 @@ def write_css(file):   #here I could do a fancier design, if that would be a goo
         }
 
     </STYLE>
+    </HEAD>
+    <BODY>
 """
     file.write(line)
 
@@ -298,21 +311,18 @@ def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1
     height = nest.get_sheet_property(sheet, nest.SheetProperties.HEIGHT)             #_NSheetHeight
     current_date = datetime.datetime.now().strftime("%d.%m.%Y")
 
-    line = """
-    </HEAD>
-    <BODY>
-    """
-
     if count == 0:
-        line += '<DIV style="display: flex; align-items: center;">'
-        line += f'<IMG src="file:///{logo}" alt="Logo" width="70" height="70">'
+        line = '<DIV style="display: flex; align-items: center;">'
+        line += f'<IMG src="file:///{logo}" alt="DDX Logo" width="70" height="70">'
         line += f'<SPAN style="font-size: 35px; margin-left: 20px; align-self: auto;">Projekt: {os.path.splitext(project_name)[0]}</SPAN>'
         line += '</DIV>'
+    else:
+        line = '<DIV style="page-break-before:always;"></DIV>'
 
     file.write(line)
 
-    #table for sheet information
-    line = '<TABLE id="mainTable">'
+   #table for sheet information
+    line = '<DIV class="table-container"> <TABLE id="mainTable">'
     file.write(line)
 
     #row with sheet name
@@ -340,7 +350,7 @@ def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1
     file.write(line)
 
     #picture from the sheet
-    size_img = "width=\"1200pt\"" if width > 3 * height else "height=\"400pt\"" #? maybe do that differently
+    size_img = "width=\"1200pt\"" if width > 3 * height else "height=\"400pt\""
     line = f'<TR> <TD colspan="10"> <IMG src="file:///{img_path}"{size_img}> </TD></TR>'
     file.write(line)
 
@@ -363,6 +373,7 @@ def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1
             <TD align="middle">Höhe</TD>
             <TD align="middle">{round(piece_height, 2)}</TD>
         </TR>
+
         """
         file.write(line)
         n_piece_count += 1
@@ -370,7 +381,7 @@ def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1
     count_efficiency(file, sheet, sheets, pieces, total_area, curr1, curr2, total_reusable, total_garbage, area)
 
     #close table
-    line = '</TABLE></BR>'
+    line = '</BR>'
     file.write(line)
 
 
