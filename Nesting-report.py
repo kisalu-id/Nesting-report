@@ -206,7 +206,7 @@ def write_css(file):   #here I could do a fancier design, if that would be a goo
     """
 
     line = """
-<STYLE>
+    <STYLE>
         body {
             font-family: sans-serif;
             margin-left: 15px
@@ -244,12 +244,14 @@ def write_css(file):   #here I could do a fancier design, if that would be a goo
         #thick-border {
             border-width: 3px;
         }
+
         .center-text, #thick-border th.center-text {
             font-size: 22px;
             padding: 3px;
             text-align: center;
             font-weight: 500;
         }
+
         #thick-border td, 
         #thick-border th {
             padding: 5px;
