@@ -195,11 +195,10 @@ def html_header_write(html_file, project_name):
     <META charset="UTF-8">
     <META name="viewport" content="width=device-width, initial-scale=1.0">
     <TITLE>Nesting report for {project_name}</TITLE>
-    <SCRIPT type="text/javascript" src="js/code39.js"></SCRIPT>
     """)
 
 
-def write_css(file):   #here I could do a fancier design, if that would be a good idea
+def write_css(file):
     """
     :param file: the name of the HTML file to write the CSS into
     :type file: str
@@ -219,7 +218,7 @@ def write_css(file):   #here I could do a fancier design, if that would be a goo
         }
 
         .table-container {
-            display: inline-block;
+            display: table;
         }
 
         #mainTable {
@@ -278,7 +277,7 @@ def write_css(file):   #here I could do a fancier design, if that would be a goo
     file.write(line)
 
 
-def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1, curr2, total_reusable, total_garbage, img_path, area):
+def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1, curr2, total_reusable, total_garbage, img_path, area, reports_pdfs_together, folder):
     """
     Get the sheet properties, write html file and piece properties.
 
@@ -314,26 +313,26 @@ def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1
     current_date = datetime.datetime.now().strftime("%d.%m.%Y")
 
     if count == 0:
-        line = '<DIV style="display: flex; align-items: center;">'
-        line += f'<IMG src="file:///{logo}" alt="DDX Logo" width="70" height="70">'
-        line += f'<SPAN style="font-size: 35px; margin-left: 20px; align-self: auto;">Projekt: {os.path.splitext(project_name)[0]}</SPAN>'
-        line += '</DIV>'
-    else:
-        line = '<DIV style="page-break-before:always;"></DIV>'
+        line = '<DIV style="display: inline-block; width: 100%; text-align: left;"> '
+        line += f'<IMG src="file:///{logo}" alt="Logo" style="vertical-align: middle; width: 70px; height: 70px;"> '
+        line += f'<SPAN style="font-size: 35px; margin-left: 20px; vertical-align: middle;">Projekt: {os.path.splitext(project_name)[0]} </SPAN>'
+        line += '</DIV> '
+        file.write(line)
 
-    file.write(line)
-
-   #table for sheet information
-    line = '<DIV class="table-container"> <TABLE id="mainTable">'
+    #table for sheet information
+    line = '<DIV class="table-container"> <TABLE '
+    if count != 0:
+        line += 'style="page-break-before:always" '
+    line += 'id="mainTable"> '
     file.write(line)
 
     #row with sheet name
-    line = f'<TR><TD style="font-size:30px" colspan="6">{sheet}</TD>'
+    line = f'<TR> <TD style="font-size:30px" colspan="6">{sheet}</TD>'
 
     s_count = str(count).zfill(3)
 
     #adding the date
-    line += f'<TD colspan="4" class="right-align">{current_date}</TD></TR>'
+    line += f'<TD colspan="4" class="right-align">{current_date}</TD> </TR> '
     file.write(line)
 
     #sheet information - width, height, thickness, name, material
@@ -380,16 +379,18 @@ def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1
         file.write(line)
         n_piece_count += 1
 
-    count_efficiency(file, sheet, sheets, pieces, total_area, curr1, curr2, total_reusable, total_garbage, area)
+    line = '</TABLE>' #closing mainTable
+    file.write(line)
 
-    #close table
-    line = '</BR>'
+    count_efficiency(file, sheet, sheets, pieces, total_area, curr1, curr2, total_reusable, total_garbage, area, reports_pdfs_together, folder, logo, project_name)
+
+    line = '</DIV>' #closing <DIV class="table-container">
     file.write(line)
 
 
 
 
-def count_efficiency(file, sheet, sheets, pieces, total_area, curr1, curr2, total_reusable, total_garbage, area):
+def count_efficiency(file, sheet, sheets, pieces, total_area, curr1, curr2, total_reusable, total_garbage, area, reports_pdfs_together, folder, logo, project_name):
     """
     Count efficiency for each sheet, if there's more than 1 sheet - do the total efficiency
 
@@ -423,9 +424,29 @@ def count_efficiency(file, sheet, sheets, pieces, total_area, curr1, curr2, tota
         efficiency_for_sheet(file, pieces, area, curr1, curr2)
 
         #here we do total_efficiency after every sheet was dealt with
-        if sheet == sheets[-1] and sheets[0] != sheet: #if current sheet is the last sheet in list of sheets; AND it's not a single sheet in a list
+        #if current sheet is the last sheet in list of sheets AND it's not a single sheet in a list AND if "reports_pdfs_together" is True
+        if sheet == sheets[-1] and sheets[0] != sheet and reports_pdfs_together == True:
             number_of_sheets = len(sheets)
             efficiency_sheets_total(file, number_of_sheets, total_area, total_reusable, total_garbage)
+
+        if sheet == sheets[-1] and sheets[0] != sheet and reports_pdfs_together != True:
+            
+            total_report_path = os.path.join(folder, 'total_report.html')
+            try:
+                with open(total_report_path, 'w', encoding='utf-8') as total_report_html:
+                    #HTML header and file name
+                    html_header_write(total_report_html, project_name)
+                    #here add write_fancy_css or write_css_for_printing
+                    write_css(total_report_html)
+
+                    number_of_sheets = len(sheets)
+                    efficiency_sheets_total(total_report_html, number_of_sheets, total_area, total_reusable, total_garbage)
+                    close_html(total_report_html)
+                    output_pdf = os.path.join(folder, 'total_report.pdf')
+                to_pdf(total_report_path, output_pdf)
+
+            except IOError as e:
+                dlg.output_box(f"Ein Fehler ist beim Schreiben der Datei '{total_report_path}' aufgetreten: {e}")
 
 
 def efficiency_for_sheet(html_file, pieces, area, curr1, curr2):
