@@ -147,7 +147,6 @@ def nesting_report():
                 if rotate:
                     cad.rotate(sheet, 0, 0, 90, False)
 
-            insert_java_script(html_file, count)
             #close HTML
             line = '</BODY></HTML>'
             html_file.write(line)
@@ -491,8 +490,12 @@ def efficiency_for_sheet(html_file, pieces, area, curr1, curr2):
         """)
 
 
-def efficiency_sheets_total(html_file, number_of_sheets, total_area, total_reusable, total_garbage):
+def efficiency_sheets_total(html_file_object, number_of_sheets, total_area, total_reusable, total_garbage):
     """
+    Total report for all sheets, if the sheet count exceeds 1
+    
+    :param html_file_object: the file object to which the HTML content will be written
+    :type html_file_object: file-like object (e.g., obtained via open() in write mode)
     :param number_of_sheets: the total number of sheets
     :type number_of_sheets: int
     :param total_area: the total area of all sheets
@@ -501,14 +504,12 @@ def efficiency_sheets_total(html_file, number_of_sheets, total_area, total_reusa
     :type total_reusable: float
     :param total_garbage: the total percentage of not reusable material
     :type total_garbage: float
-    :return: string that will be written into HTML
-    :rtype: str
     """
 
-    average_reusable = total_reusable / number_of_sheets #  %  -  I need to not only add % from every sheet but also get the Durchschnitt per sheet
+    average_reusable = total_reusable / number_of_sheets #  %  -  I need to not only add % from every sheet, but also get the Durchschnitt per sheet
     average_garbage = total_garbage / number_of_sheets   #  %
 
-    html_file.write(f"""<BR/>
+    html_file_object .write(f"""
         <TABLE id="thick-border" class="adjustable-table">
             <TH colspan="3" class="center-text">Gesamtwirkungsgradbericht</TH>
 
@@ -545,60 +546,35 @@ def efficiency_sheets_total(html_file, number_of_sheets, total_area, total_reusa
                 <TD class="grey">{round(total_area * average_garbage / 100 / number_of_sheets, 2)} m²</TD>
             </TR>
         </TABLE>
-        <BR/>
         """)
 
 
-def insert_java_script(file, count):
-    line = """
-    <SCRIPT type="text/javascript">
-    /* <![CDATA[ */
-    function get_object(id) {
-        var object = null;
-        if (document.layers) {
-            object = document.layers[id];
-        } else if (document.all) {
-            object = document.all[id];
-        } else if (document.getElementById) {
-            object = document.getElementById(id);
-        }
-        return object;
-    }
-    
-    window.onload = function() {
-        var mainTable = document.getElementById('mainTable');
-        if (mainTable) {
-            var mainTableWidth = mainTable.offsetWidth;
-            var adjustableTables = document.querySelectorAll('.adjustable-table');
-            adjustableTables.forEach(function(table) {
-                table.style.width = mainTableWidth + 'px';
-            });
-        }
-    };
 
-    /* ]]> */
-    </SCRIPT>
+def close_html(html_file_object):
     """
-    file.write(line)
+    Closing HTML document
+
+    :param html_file_object: the file object to which the HTML content will be written
+    :type html_file_object: file-like object (e.g., obtained via open() in write mode)
+    """
+    line = '</BODY></HTML>'
+    html_file_object.write(line)
 
 
 
-
-
-
-def to_pdf(report_file, folder):
+def to_pdf(report_html_path, output_pdf_path):
     """
     Convert HTML to PDF
 
-    :param report_file: the name of the HTML report file to be converted to PDF
-    :type report_file: str
-    :param folder: the directory where the PDF will be saved
-    :type folder: str
+    :param report_html_path: the file path where the generated HTML report will be saved
+    :type report_html_path: str
+    :param output_pdf_path: the file path where the generated PDF report will be saved
+    :type output_pdf_path: str
     """
     do_debug()
-    subprocess.call([path_to_wkhtmltopdf])
-    #sclcore.execute_file(report_file, folder)
-    path_to_wkhtmltopdf
+    path_to_wkhtmltopdf = r'C:\Program Files\...\wkhtmltopdf.exe'
+    subprocess.call([path_to_wkhtmltopdf, report_html_path, output_pdf_path])
+
 
 
 
