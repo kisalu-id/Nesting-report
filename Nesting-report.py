@@ -13,10 +13,12 @@ from sclcore import do_debug
 from sclcore import execute_command_bool as exec_bool
 
 
+
+
 def nesting_report():
     """
-    Get the "turn" setting from ini, get or create the folder, delete previous files there, create and open HTML, delete empty sheets, write info about each sheet,
-    count efficiency, write css and html
+    The program loads settings from an .ini file, creates a new folder, and generates an HTML report with applied CSS. 
+    It includes detailed information about each sheet, calculates individual and total efficiency metrics, and then converts the final HTML report into a PDF format.
     """
     do_debug()
     config_nr.run_config()
@@ -35,9 +37,10 @@ def nesting_report():
 
         #path for the folder
         general_folder =  config.get('Pfad', 'report_pfad')
+
         #create new unique folder
         general_folder = os.path.join(general_folder, 'Report_new')
-        # - regardless of the user choice, there will be  created a new folde, that will only have report files, that are safe to delete
+        #regardless of the user choice, there will be  created a new folde, that will only have report files, that are safe to delete
 
         nice_design = config.get('Druckeinstellungen', 'nice_design') #if True, nice_design
         nice_design = False if nice_design == "0" or nice_design =="False" else True
@@ -47,6 +50,9 @@ def nesting_report():
 
         only_measures_BW = config.get('Druckeinstellungen', 'only_measures_BW') #if True, only_measures_BW
         only_measures_BW = False if only_measures_BW == "0" or only_measures_BW =="False" else True
+
+        divide_material = config.get('Druckeinstellungen', 'divide_material') #if True, divide the report depending on the material
+        divide_material = False if divide_material == "0" or divide_material =="False" else True
 
 
     except FileNotFoundError:
@@ -62,12 +68,10 @@ def nesting_report():
     except Exception as e:
         dlg.output_box(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
 
-
-    ###if project is not saved --> save it in temp folder in program or in a temp dircetory in the config file
     project_name = ewd.get_project_name() #get the name of the opened ewd project
     if not project_name.endswith (".ewd"):
         project_name = datetime.datetime.now().strftime("%Y_%m_%d_%H-%M")
-        ewd.save_project(ewd.explode_file_path(f"%TEMPPATH%//{project_name}.ewd")) 
+        ewd.save_project(ewd.explode_file_path(f"%TEMPPATH%//{project_name}.ewd"))
         project_name = f"{project_name}.ewd"
 
     #subfolder with the project name: it will be deleted, if it already exists, then the new folder will be created
@@ -76,7 +80,7 @@ def nesting_report():
 
     #if folder exists and user set this setting, delete
     if delete_folder and os.path.exists(folder):
-        #add "ok" and "cancel"
+        #maybe later add "ok" and "cancel"
         remove_existing_folder_with_same_name(folder)
 
     else: #if folder doesn't exist, create
@@ -86,79 +90,64 @@ def nesting_report():
             dlg.output_box(f"Fehler beim Ordner erstellen in {folder}")
 
 
-    report_file = f'{folder}\\report.html'
+    report_file_path = f'{folder}\\report.html'
     try:
-        os.makedirs(os.path.dirname(report_file), exist_ok=True)
+        os.makedirs(os.path.dirname(report_file_path), exist_ok=True)
     except OSError as e:
-        dlg.output_box(f"Fehler beim Ordner erstellen in {os.path.dirname(report_file)}")
+        dlg.output_box(f"Fehler beim Ordner erstellen in {os.path.dirname(report_file_path)}")
 
-        ### better code would proably to use a .join function later instead of adding the //
-    if not folder.endswith("\\"):
-        os.path.join(folder, '')
     img_ext = ".jpg"
 
-    logo = "C:/ProgramData/.../logo_black.png"
+    logo = "C:\Program Files\...\logo.png"
 
     #switch to top view; wireframe
     view.set_std_view_eye()
-    exec_bool("SetWireFrame")
-    # exec_bool("SetShading")
+    # exec_bool("SetWireFrame")
+    exec_bool("SetShading")
+    ### to execute this with just a wrapper around the scl, we can do sclcore.execute_command_boolean("SetWireFrame")
 
-    try:
-        with open(report_file, 'w', encoding='utf-8') as html_file:
-            #HTML header and file name
-            html_header_write(html_file, project_name)
-
-            write_css(html_file)
-            sheets = nest.get_sheets()
-            count = 0
-            for sheet in sheets:
-                if rotate: #rotate sheets by 90 degrees
-                    cad.rotate(sheet, 0, 0, -90, False)
-
-            sheets = nest.get_sheets()
-            total_area = 0        # m2
-            total_garbage = 0     # %
-            total_reusable = 0    # %
-            for sheet in sheets:
-                #name of the jpg
-                img_path = f"{folder}//{sheet}{img_ext}"
-                area = nest.get_sheet_property(sheet, nest.SheetProperties.AREA)                 #_NSheetArea
-                curr1 = nest.get_sheet_property(sheet, nest.SheetProperties.RATE_LEFT_OVER)      #_NSheetRateLeftOver  % of sheet   garbage not reusable material
-                curr2 = nest.get_sheet_property(sheet, nest.SheetProperties.RATE_REUSABLE)       #_NSheetRateReusable  % of sheet   reusable material
-                area = (area / 1000000)   # m2
-                total_area += area        # m2
-                total_garbage += curr1    # %
-                total_reusable += curr2   # %
-
-                object_path = groups.get_current()
-
-                #get_project_path
-                if not os.path.isfile(img_path):
-                    os.makedirs(os.path.dirname(img_path), exist_ok=True) 
-
-                view.zoom_on_object(object_path, ratio=1)
-                nest.get_sheet_preview(sheet, img_path, 0.35) # 0.35, so lines will be thicker
-
-                #all the html, incl. efficiency
-                write_html(html_file, logo, project_name, sheet, sheets, count, total_area, curr1, curr2, total_reusable, total_garbage, img_path, area)
-                count += 1
-                
-                if rotate:
-                    cad.rotate(sheet, 0, 0, 90, False)
-
-            #close HTML
-            line = '</BODY></HTML>'
-            html_file.write(line)
+    materials_dict = {}
 
 
-        try:
-            to_pdf(report_file, folder)
-        except Exception as e:
-            dlg.output_box(f" :C {e}")
+    #try:
 
-    except IOError as e:
-        dlg.output_box(f"Ein Fehler ist beim Schreiben der Datei '{report_file}' aufgetreten: {e}")
+    #what i do:
+    #sort sheets depending on material and thickness
+    #for each materials_dict[key] generate html file, with one or mpre shets; if len(sheets) > 1, write (optionally, separate) general report
+    if divide_material:
+        sheets = nest.get_sheets()
+        for sheet in sheets:
+            material = nest.get_sheet_property(sheet, nest.SheetProperties.MATERIAL)
+            thickness = nest.get_sheet_property(sheet, nest.SheetProperties.THICKNESS)
+            key = (material, thickness) #tuple
+            sort_for_material(sheet, materials_dict, key) #basically sorting and saving as a dictionary
+        for key in materials_dict:
+            materials_dict[key].sort()
+        #ok. i sorted
+
+
+        #now do the fork of "if divide_material or not"
+
+        #ig delete the report_file_path = f'{folder}\\report.html'
+
+        for material_and_thickness, sheets_values in materials_dict.items():
+            material, thickness = material_and_thickness  #extract material and thickness from the key
+
+            #html with a new name
+            report_file_path = f"{folder}\\{material}_{thickness}.html"
+            try:
+                os.makedirs(os.path.dirname(report_file_path), exist_ok=True)
+            except OSError as e:
+                dlg.output_box(f"Fehler beim Ordner erstellen in {os.path.dirname(report_file_path)}")
+            #do the thing  !
+            project_name = f"{material}_{thickness}_{project_name}"
+            the_thing(report_file_path, project_name, nice_design, rotate, folder, img_ext, logo, reports_pdfs_together, divide_material, sheets_values)
+
+    else: #if not divide_material:
+        #do the thing  !
+        sheets = nest.get_sheets()
+        the_thing(report_file_path, project_name, nice_design, rotate, folder, img_ext, logo, reports_pdfs_together, divide_material, sheets)
+
 
 
 
