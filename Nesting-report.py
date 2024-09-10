@@ -149,6 +149,70 @@ def nesting_report():
         the_thing(report_file_path, project_name, nice_design, rotate, folder, img_ext, logo, reports_pdfs_together, divide_material, sheets)
 
 
+def the_thing(report_file_path, project_name, nice_design, rotate, folder, img_ext, logo, reports_pdfs_together, divide_material, sheets):
+    try:
+        with open(report_file_path, 'w', encoding='utf-8') as html_file: #html_file is an object
+
+            #HTML header and file name
+            html_header_write(html_file, project_name)
+
+            #here add write_fancy_css or write_css_for_printing
+            if nice_design:
+                write_nice_css(html_file)
+            else:
+                write_css_printing(html_file)
+
+            count = 0
+
+            if rotate: #rotate sheets by 90 degrees
+                for sheet in sheets:
+                    cad.rotate(sheet, 0, 0, -90, False)
+
+            if not divide_material:
+                sheets = nest.get_sheets()
+            total_area = 0        # m2
+            total_garbage = 0     # %
+            total_reusable = 0    # %
+            for sheet in sheets:
+                #name of the jpg
+                img_path = f"{folder}\{sheet}{img_ext}"
+                area = nest.get_sheet_property(sheet, nest.SheetProperties.AREA)                 #_NSheetArea
+                curr1 = nest.get_sheet_property(sheet, nest.SheetProperties.RATE_LEFT_OVER)      #_NSheetRateLeftOver  % of sheet   garbage not reusable material
+                curr2 = nest.get_sheet_property(sheet, nest.SheetProperties.RATE_REUSABLE)       #_NSheetRateReusable  % of sheet   reusable material
+                area = (area / 1000000)   # m2
+                total_area += area        # m2
+                total_garbage += curr1    # %
+                total_reusable += curr2   # %
+
+                object_path = sheet
+
+                if not os.path.isfile(img_path):
+                    os.makedirs(os.path.dirname(img_path), exist_ok=True)
+
+                view.zoom_on_object(object_path, ratio=1)
+                nest.get_sheet_preview(sheet, img_path, 0.35) # 0.35, so the lines will be thicker
+
+                #all the html, incl. efficiency
+                write_html(html_file, logo, project_name, sheet, sheets, count, total_area, curr1, curr2, total_reusable, total_garbage, img_path, area, reports_pdfs_together, folder, nice_design, divide_material)
+                count += 1
+                
+                if rotate:
+                    cad.rotate(sheet, 0, 0, 90, False)
+
+            close_html(html_file)
+
+        try:
+            if divide_material:
+                output_pdf = os.path.join(folder, f'{project_name}.pdf')
+            else:
+                output_pdf = os.path.join(folder, 'report.pdf')
+            to_pdf(report_file_path, output_pdf)
+        except Exception as e:
+            dlg.output_box(f" :C {e}")
+
+    except IOError as e:
+        dlg.output_box(f"Ein Fehler ist beim Schreiben der Datei '{report_file_path}' aufgetreten: {e}")
+
 
 
 def remove_existing_folder_with_same_name(folder):
