@@ -13,6 +13,19 @@ from sclcore import do_debug
 from sclcore import execute_command_bool as exec_bool
 
 
+class ReportSheet():
+    def __init__(self, sheet, mat_leftover, mat_reusable, area, count, img_path, total_area, total_reusable, total_garbage):
+        self.sheet = sheet
+        self.mat_leftover = mat_leftover
+        self.mat_reusable = mat_reusable
+        self.area = area
+        self.count = count
+        self.img_path = img_path
+        self.total_area = total_area
+        self.total_reusable = total_reusable
+        self.total_garbage = total_garbage
+
+
 
 
 def nesting_report():
