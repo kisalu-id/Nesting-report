@@ -146,102 +146,37 @@ def remove_existing_folder_with_same_name(folder):
     except Exception as e:
         dlg.output_box(f"Ein Fehler ist aufgetreten: {e}")
 
-
-def html_header_write(html_file, project_name):
-    """
-    Write HTML header
-    :param project_name: the name of the project
-    :type project_name: str
-    :return: string that will be written into HTML
-    :rtype: str
-    """
-
-    html_file.write(f"""<!DOCTYPE HTML>
-<HTML lang="de">
-<HEAD>
-    <META charset="UTF-8">
-    <META name="viewport" content="width=device-width, initial-scale=1.0">
-    <TITLE>Nesting report for {project_name}</TITLE>
-    """)
+def create_report_file_path(folder):
+    report_file_path = f'{folder}\\report.html'
+    try:
+        os.makedirs(os.path.dirname(report_file_path), exist_ok=True)
+    except OSError as e:
+        dlg.output_box(f"Fehler beim Ordner erstellen in {os.path.dirname(report_file_path)}")
+    return report_file_path
 
 
-def write_css(file):
-    """
-    :param file: the name of the HTML file to write the CSS into
-    :type file: str
-    """
 
-    line = """
-    <STYLE>
-        body {
-            font-family: sans-serif;
-            margin-left: 15px
-        }
+def set_view_and_shading(nice_design):
+    #switch to top view; wireframe
+    view.set_std_view_eye()
+    if not nice_design:
+        exec_bool("SetShading")
 
-        table {
-            border: 1px solid rgb(186, 186, 186);
-            margin-bottom: 10px;
-            /* border-collapse: collapse;   uncomment for a singular line border*/
-        }
 
-        .table-container {
-            display: table;
-        }
 
-        #mainTable {
-            display: inline-block;
-            width: fit-content;
-        }
-
-        .adjustable-table {
-            width: 100%;
-        }
-
-        th, td {
-            border: 1px solid black;
-            text-align: left;
-            font-weight: normal;
-            padding: 3px;
-            background-color: rgba(186, 186, 186, 0.17);
-            border-radius: 2px;
-            border-color: #bababa;
-        }
-
-        #thick-border {
-            border-width: 3px;
-        }
-
-        .center-text, #thick-border th.center-text {
-            font-size: 22px;
-            padding: 3px;
-            text-align: center;
-            font-weight: 500;
-        }
-
-        #thick-border td, 
-        #thick-border th {
-            padding: 5px;
-            font-size: 18px;
-        }
-
-        .green {
-            background-color: rgba(105, 191, 74, 0.556);
-        }
-
-        .grey {
-            background-color: rgba(186, 186, 186, 0.632);
-        }
-        
-        .right-align {
-            text-align: right;
-            font-size: 20px;
-        }
-
-    </STYLE>
-    </HEAD>
-    <BODY>
-"""
-    file.write(line)
+def sort_for_material():
+    materials_dict = {}
+    sheets = nest.get_sheets()
+    for sheet in sheets:
+        material = nest.get_sheet_property(sheet, nest.SheetProperties.MATERIAL)
+        thickness = nest.get_sheet_property(sheet, nest.SheetProperties.THICKNESS)
+        key = (material, thickness) #tuple
+        if key in materials_dict:
+            materials_dict[key].append(sheet)
+        else:
+            #materials_dict[(material, thickness)] = []   #tuple = list
+            materials_dict[key] = [sheet]
+    return materials_dict
 
 
 def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1, curr2, total_reusable, total_garbage, img_path, area, reports_pdfs_together, folder):
