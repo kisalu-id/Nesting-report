@@ -179,176 +179,125 @@ def sort_for_material():
     return materials_dict
 
 
-def write_html(file, logo, project_name, sheet, sheets, count, total_area, curr1, curr2, total_reusable, total_garbage, img_path, area, reports_pdfs_together, folder):
-    """
-    Get the sheet properties, write html file and piece properties.
+def create_report(report_file_path, project_name, folder, img_ext, logo, nice_design, rotate, reports_pdfs_together, divide_material, sheets_to_report, materials_dict, counter_efficiency_total, counter_for_full_pdf):
+    try:
+        with open(report_file_path, 'w', encoding='utf-8') as html_file: #html_file is an object
 
-    :param file: the name of the HTML file to write into
-    :type file: str
-    :param logo: the URL of the logo image file
-    :type logo: str
-    :param project_name: the name of the project
-    :type project_name: str
-    :param sheet: the sheet name
-    :type sheet: str
-    :param sheets: a list of sheets
-    :type sheets: list
-    :param count: the number of sheets... I think.... it's quite misterious actually, how that was used in the SCL code
-    :type count: int
-    :param total_area: the total area of all sheets, to use for total_efficiency for the last sheet
-    :type total_area: float
-    :param curr1: the percentage of not reusable material
-    :type curr1: float
-    :param curr2: the percentage of reusable material
-    :type curr2: float
-    :param total_reusable: the total percentage of reusable material
-    :type total_reusable
-    :param area: the area of the sheet
-    :type area: float
-    """
+            if counter_for_full_pdf == 0: 
+                #white header and css, IF divide_material=True (bc then counter_for_full_pdf==0) OR if that's the first key (pdf) for reports_pdfs_together=True
 
-    pieces = nest.get_sheet_property(sheet, nest.SheetProperties.PIECES_NUMBER)      #_NSheetNumPieces
-    thickness = nest.get_sheet_property(sheet, nest.Properties.SHEET_THICKNESS)      #_NSheetRateReusable
-    material = nest.get_sheet_property(sheet, nest.SheetProperties.MATERIAL)         #_NSheetMaterial
-    width = nest.get_sheet_property(sheet, nest.SheetProperties.WIDTH)               #_NSheetWidth
-    height = nest.get_sheet_property(sheet, nest.SheetProperties.HEIGHT)             #_NSheetHeight
-    current_date = datetime.datetime.now().strftime("%d.%m.%Y")
+                #HTML header and file name
+                html_header_write(html_file, project_name)
 
-    if count == 0:
-        line = '<DIV style="display: inline-block; width: 100%; text-align: left;"> '
-        line += f'<IMG src="file:///{logo}" alt="Logo" style="vertical-align: middle; width: 70px; height: 70px;"> '
-        line += f'<SPAN style="font-size: 35px; margin-left: 20px; vertical-align: middle;">Projekt: {os.path.splitext(project_name)[0]} </SPAN>'
-        line += '</DIV> '
-        file.write(line)
+                #here add write_fancy_css or write_css_for_printing
+                if nice_design:
+                    write_nice_css(html_file)
+                else:
+                    write_css_printing(html_file)
 
-    #table for sheet information
-    line = '<DIV class="table-container"> <TABLE '
-    if count != 0:
-        line += 'style="page-break-before:always" '
-    line += 'id="mainTable"> '
-    file.write(line)
+            counter_sheet_in_sheets = 0
 
-    #row with sheet name
-    line = f'<TR> <TD style="font-size:30px" colspan="6">{sheet}</TD>'
+            if rotate: #rotate sheets by 90 degrees
+                for sheet in sheets_to_report:
+                    cad.rotate(sheet, 0, 0, -90, False)
 
-    s_count = str(count).zfill(3)
+            #if reports_pdfs_together and divide_material:
+            #I ALWAYS count stuff separately for material
+            if counter_for_full_pdf == 0:
+                #i need to have these variables as 0 for each key only if reports are split for material, or if that's the first key (pdf) for reports_pdfs_together=True
+                #it could be if divide_material or counter_for_full_pdf == 0: but it's the same thing since in nesting_report if divide_material  I'm always passing 0 for counter_for_full_pdf
+                total_area = 0        # m2
+                total_garbage = 0     # %
+                total_reusable = 0    # %
 
-    #adding the date
-    line += f'<TD colspan="4" class="right-align">{current_date}</TD> </TR> '
-    file.write(line)
+            for sheet in sheets_to_report:
+                sheet_obj = get_sheet_obj(folder, sheet, counter_sheet_in_sheets, img_ext, total_area, total_reusable, total_garbage)
 
-    #sheet information - width, height, thickness, name, material
-    line = f"""
-    <TR>
-        <TD align="middle">Breite</TD>
-        <TD align="middle">{round(width, 2)}</TD>
-        <TD align="middle">Höhe</TD>
-        <TD align="middle">{round(height, 2)}</TD>
-        <TD align="middle">Stärke</TD>
-        <TD align="middle">{round(thickness, 2)}</TD>
-        <TD align="middle">Material</TD>
-        <TD align="middle">{material}</TD>
-    </TR>
-    """
-    file.write(line)
+                total_area, total_garbage, total_reusable, counter_sheet_in_sheets = write_html(folder, html_file, logo, project_name, sheets_to_report, reports_pdfs_together, nice_design, divide_material, sheet_obj, counter_efficiency_total)
 
-    #picture from the sheet
-    size_img = "width=\"1200pt\"" if width > 3 * height else "height=\"400pt\""
-    line = f'<TR> <TD colspan="10"> <IMG src="file:///{img_path}"{size_img}> </TD></TR>'
-    file.write(line)
+                if rotate:
+                    cad.rotate(sheet, 0, 0, 90, False)
 
-    #write down the individual information about the components.
-    pieces_on_sheet = nest.get_pieces(sheet)
-    n_piece_count = 1
-    for piece in pieces_on_sheet:
-        piece_width = nest.get_piece_property(piece, nest.PieceProperties.WIDTH)
-        piece_height = nest.get_piece_property(piece, nest.PieceProperties.HEIGHT)
-        piece_label = nest.get_piece_property(piece, nest.PieceProperties.LABEL)
+            close_html(html_file)
 
-        line = f"""
-        <TR class="adjustable-table" style="width: 100%;">
-            <TD align="middle">Nr.</TD>
-            <TD align="middle">{n_piece_count}</TD>
-            <TD align="middle">Bezeichnung</TD>
-            <TD align="middle">{piece_label}</TD>
-            <TD align="middle">Breite</TD>
-            <TD align="middle">{round(piece_width, 2)}</TD>
-            <TD align="middle">Höhe</TD>
-            <TD align="middle">{round(piece_height, 2)}</TD>
-        </TR>
-
-        """
-        file.write(line)
-        n_piece_count += 1
-
-    line = '</TABLE>' #closing mainTable
-    file.write(line)
-
-    count_efficiency(file, sheet, sheets, pieces, total_area, curr1, curr2, total_reusable, total_garbage, area, reports_pdfs_together, folder, logo, project_name)
-
-    line = '</DIV>' #closing <DIV class="table-container">
-    file.write(line)
+        try:
+            if divide_material:
+                output_pdf = os.path.join(folder, f'{project_name}.pdf')
+            else:
+                output_pdf = os.path.join(folder, 'report.pdf')
+                test = f'{project_name}.pdf'
+                #!!!!!!!!!!!!!!!!!!
 
 
 
 
-def count_efficiency(file, sheet, sheets, pieces, total_area, curr1, curr2, total_reusable, total_garbage, area, reports_pdfs_together, folder, logo, project_name):
-    """
-    Count efficiency for each sheet, if there's more than 1 sheet - do the total efficiency
 
-    :param file: the name of the HTML file to write into
-    :type file: str
-    :param sheet: the sheet name
-    :type sheet: str
-    :param sheets: a list of sheets
-    :type sheets: list
-    :param pieces: the number of pieces
-    :type pieces: int
-    :param total_area: the total area of all sheets m²
-    :type total_area: float
-    :param curr1: the percentage of not reusable material %
-    :type curr1: float
-    :param curr2: the percentage of reusable material %
-    :type curr2: float
-    :param total_reusable: the total percentage of reusable material %
-    :type total_reusable: float
-    :param total_garbage: the total percentage of not reusable material %
-    :type total_garbage: float
-    :param area: the area of the sheet
-    :type area: float
-    """
 
-    #    autocam_aktivieren = config.get('SETTINGS', 'autocam_aktivieren')
-    #    if autocam_aktivieren:
-    sheets = nest.get_sheets() #do i need that?.. or then delete an argument to this function
+            to_pdf(report_file_path, output_pdf)
+        except Exception as e:
+            dlg.output_box(f" :C {e}")
 
-    if sheet:
-        efficiency_for_sheet(file, pieces, area, curr1, curr2)
+    except IOError as e:
+        dlg.output_box(f"Ein Fehler ist beim Schreiben der Datei '{report_file_path}' aufgetreten: {e}")
 
-        #here we do total_efficiency after every sheet was dealt with
-        #if current sheet is the last sheet in list of sheets AND it's not a single sheet in a list AND if "reports_pdfs_together" is True
-        if sheet == sheets[-1] and sheets[0] != sheet and reports_pdfs_together == True:
-            number_of_sheets = len(sheets)
-            efficiency_sheets_total(file, number_of_sheets, total_area, total_reusable, total_garbage)
 
-        if sheet == sheets[-1] and sheets[0] != sheet and reports_pdfs_together != True:
-            
-            total_report_path = os.path.join(folder, 'total_report.html')
-            try:
-                with open(total_report_path, 'w', encoding='utf-8') as total_report_html:
-                    #HTML header and file name
-                    html_header_write(total_report_html, project_name)
-                    #here add write_fancy_css or write_css_for_printing
-                    write_css(total_report_html)
 
-                    number_of_sheets = len(sheets)
-                    efficiency_sheets_total(total_report_html, number_of_sheets, total_area, total_reusable, total_garbage)
-                    close_html(total_report_html)
-                    output_pdf = os.path.join(folder, 'total_report.pdf')
-                to_pdf(total_report_path, output_pdf)
+def get_sheet_obj(folder, sheet, counter_sheet_in_sheets, img_ext, total_area, total_reusable, total_garbage):
 
-            except IOError as e:
-                dlg.output_box(f"Ein Fehler ist beim Schreiben der Datei '{total_report_path}' aufgetreten: {e}")
+    img_path = f"{folder}\{sheet}{img_ext}"
+    area = nest.get_sheet_property(sheet, nest.SheetProperties.AREA)
+    mat_leftover = nest.get_sheet_property(sheet, nest.SheetProperties.RATE_LEFT_OVER)      # % of sheet   garbage not reusable material
+    mat_reusable = nest.get_sheet_property(sheet, nest.SheetProperties.RATE_REUSABLE)       # % of sheet   reusable material
+    area = (area / 1000000)   # m2
+    total_area += area        # m2
+    total_reusable += mat_reusable   # %
+    total_garbage += mat_leftover    # %
+
+    if not os.path.isfile(img_path):
+        os.makedirs(os.path.dirname(img_path), exist_ok=True)
+
+    view.zoom_on_object(sheet, ratio=1)
+    nest.get_sheet_preview(sheet, img_path, 0.35) # 0.35, so the lines will be thicker
+
+    #all the html, incl. efficiency
+    return ReportSheet(
+        sheet=sheet,
+        mat_leftover=mat_leftover,
+        mat_reusable=mat_reusable,
+        area=area,
+        counter_sheet_in_sheets=counter_sheet_in_sheets,
+        img_path=img_path,
+        total_area=total_area,
+        total_reusable=total_reusable,
+        total_garbage=total_garbage
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def efficiency_for_sheet(html_file, pieces, area, curr1, curr2):
