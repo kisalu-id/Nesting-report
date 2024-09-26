@@ -274,6 +274,198 @@ def get_sheet_obj(folder, sheet, counter_sheet_in_sheets, img_ext, total_area, t
 
 
 
+def html_header_write(html_file_object, project_name):
+    """
+    Write HTML header
+
+    :param html_file_object: the file object to which the HTML content will be written
+    :type html_file_object: file-like object (e.g., obtained via open() in write mode)
+    :param project_name: the name of the project
+    :type project_name: str
+    """
+
+    line = f"""<!DOCTYPE HTML>
+<HTML lang="de">
+<HEAD>
+    <META charset="UTF-8">
+    <META name="viewport" content="width=device-width, initial-scale=1.0">
+    <TITLE>Nesting report for {project_name}</TITLE>
+    """
+    html_file_object.write(line)
+
+
+
+def write_nice_css(html_file_object):   #here I could do a fancier design, if that would be a good idea
+    """
+    Write vissually appealing CSS if nice_design is True.
+
+    :param html_file_object: the file object to which the HTML content will be written
+    :type html_file_object: file-like object (e.g., obtained via open() in write mode)
+    """
+
+    line = """
+    <STYLE>
+        body {
+            font-family: sans-serif;
+            margin-left: 15px
+        }
+
+        table {
+            border: 1px solid rgb(186, 186, 186);
+            margin-bottom: 10px;
+            /* border-collapse: collapse;   uncomment for a singular line border*/
+        }
+
+        .table-container {
+            display: table;
+        }
+
+        .mainTable {
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .adjustable-table {
+            width: 100%;
+        }
+
+        .page-break-after {
+            page-break-after: always;
+        }
+
+        .page-break-before {
+            page-break-before: always;
+        }
+
+        th, td {
+            border: 1px solid #bababa;
+            text-align: left;
+            font-weight: normal;
+            padding: 3px;
+            background-color: rgba(186, 186, 186, 0.17);
+            border-radius: 2px;
+        }
+
+        .td-right {
+            text-align: right;
+        }
+
+        #thick-border {
+            border-width: 3px;
+        }
+
+        .center-text, #thick-border th.center-text {
+            font-size: 22px;
+            padding: 3px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        #thick-border td, 
+        #thick-border th {
+            padding: 5px;
+            font-size: 18px;
+        }
+
+        .green {
+            background-color: rgba(105, 191, 74, 0.556);
+        }
+
+        .grey {
+            background-color: rgba(186, 186, 186, 0.632);
+        }
+        
+        .right-align {
+            text-align: right;
+            font-size: 20px;
+        }
+
+    </STYLE>
+    </HEAD>
+    <BODY>
+"""
+    html_file_object.write(line)
+
+
+
+def write_css_printing(html_file_object):
+    """
+    Write minimalisting black and white style CSS if nice_design is not True.
+
+    :param html_file_object: the file object to which the HTML content will be written
+    :type html_file_object: file-like object (e.g., obtained via open() in write mode)
+    """
+
+    line = """
+    <STYLE>
+        body {
+            font-family: sans-serif;
+            margin-left: 15px
+        }
+
+        table {
+            border: 1px solid rgb(186, 186, 186);
+            margin-bottom: 10px;
+            border-collapse: collapse;
+        }
+
+        .table-container {
+            display: table;
+        }
+
+        .mainTable {
+            display: table;
+            width: 100%; /*or width: fit-content;    ?*/
+        }
+
+        .adjustable-table {
+            width: 100%;
+        }
+
+        .page-break-after {
+            page-break-after: always;
+        }
+
+        .page-break-before {
+            page-break-before: always;
+        }
+
+        th, td {
+            border: 1px solid #bababa;
+            text-align: left;
+            font-weight: normal;
+            padding: 3px;
+            border-radius: 2px;
+        }
+
+        .td-right {
+            text-align: right;
+        }
+
+        .center-text, #thick-border th.center-text {
+            font-size: 22px;
+            padding: 3px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        #thick-border td, 
+        #thick-border th {
+            padding: 5px;
+            font-size: 18px;
+        }
+
+        .right-align {
+            text-align: right;
+            font-size: 20px;
+        }
+
+    </STYLE>
+    </HEAD>
+    <BODY>
+"""
+    html_file_object.write(line)
+
 
 
 
