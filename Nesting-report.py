@@ -26,6 +26,72 @@ class ReportSheet():
         self.total_garbage = total_garbage
 
 
+class MaterialStats:
+    def __init__(self, material, thickness, number_of_sheets, total_area, total_reusable, total_garbage):
+        self.material = material
+        self.thickness = thickness
+        self.number_of_sheets = number_of_sheets
+        self.total_area = total_area
+        self.total_reusable = total_reusable
+        self.total_garbage = total_garbage
+        
+        self.average_reusable = total_reusable / number_of_sheets
+        self.average_garbage = total_garbage / number_of_sheets
+        self.gesamt_wiederverwendbares_material = total_area * total_reusable / 100 / number_of_sheets
+        self.gesamt_nicht_wiederverwendbares_material = total_area * total_garbage / 100 / number_of_sheets
+
+
+
+# materials_stats_list = []
+
+# for (material, thickness), sheets in materials_dict.items():
+#     number_of_sheets = len(sheets)
+#     stats = MaterialStats(material, thickness, number_of_sheets, total_area, total_reusable, total_garbage)
+#     materials_stats_list.append(stats)
+
+
+
+#     for stats in materials_stats_list:
+#         html_file.write(stats.to_html())
+
+
+    def to_html(self):
+        return f"""
+        <TR>
+            <TH align="left">Material und Dicke</TH>
+            <TD colspan="2" align="left">{self.material} {self.thickness} mm</TD>
+        </TR>
+        <TR>
+            <TH align="left">Anzahl Sheets</TH>
+            <TH colspan="2" align="left">{self.number_of_sheets}</TH>
+        </TR>
+        <TR>
+            <TD>Gesamtfläche</TD>
+            <TH colspan="2" align="left">{round(self.total_area, 2)} m²</TH>
+        </TR>
+        <TR>
+            <TD class="green">Gesamt wiederverwendbares Material</TD>
+            <TD class="green">{round(self.gesamt_wiederverwendbares_material, 2)} m²</TD>
+            <TD class="green td-right">{round(self.gesamt_wiederverwendbares_material / self.total_area * 100, 2)} %</TD>
+        </TR>            
+        <TR>
+            <TD class="grey">Gesamt nicht wiederverwendbares Material</TD>
+            <TD class="grey">{round(self.gesamt_nicht_wiederverwendbares_material, 2)} m²</TD>
+            <TD class="grey td-right">{round(self.gesamt_nicht_wiederverwendbares_material / self.total_area * 100, 2)} %</TD>
+        </TR>
+        <TR>
+            <TD class="green">Wiederverwendbares Material pro Platte im Durchschnitt:</TD>
+            <TD class="green">{round(self.total_area * self.average_reusable / 100 / self.number_of_sheets, 2)} m²</TD>
+            <TD class="green td-right">{round(self.total_reusable / self.number_of_sheets, 2)}%</TD>
+        </TR>
+        <TR>
+            <TD class="grey">Nicht wiederverwendbares Material pro Platte im Durchschnitt</TD>
+            <TD class="grey">{round(self.total_area * self.average_garbage / 100 / self.number_of_sheets, 2)} m²</TD>
+            <TD class="grey td-right">{round(self.total_garbage / self.number_of_sheets, 2)}%</TD>
+        </TR>
+        </TABLE>
+        """
+
 
 def nesting_report():
     """
