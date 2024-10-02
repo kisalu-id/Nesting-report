@@ -128,7 +128,6 @@ def create_object_MaterialStats(material_and_thickness, sheets_values):
 
 
 
-
 def nesting_report():
     """
     The program loads settings from an .ini file, creates a new folder, and generates an HTML report with applied CSS. 
@@ -145,33 +144,97 @@ def nesting_report():
     report_file_path = create_report_file_path(folder)
 
     img_ext = ".jpg"
-    logo = "C:\...\logo.png"
+    logo = "C:\Program Files\...\logo.png"
 
     set_view_and_shading(nice_design)
 
+    #try:
 
-    materials_dict = sort_for_material()
+    #what i do:
+    #sort sheets depending on material and thickness
+    #for each materials_dict[key] generate html file, with one or mpre shets; if len(sheets) > 1, write (optionally, separate) general report
+
+    materials_dict = sort_for_material() #basically sorting and saving as a dictionary
+
+    materials_stats_list = []
+
     counter_for_full_pdf = 0
+    counter_efficiency_total = 0
+    counter_sheet_in_sheets = 0
 
     for material_and_thickness, sheets_values in materials_dict.items():
         material, thickness = material_and_thickness  #extract material and thickness from the key
 
+        material_stats_obj = create_object_material_stats(material_and_thickness, sheets_values)
+        materials_stats_list.append(material_stats_obj)
+
         #html with a new name
         if divide_material:
-            report_file_path = f"{folder}\\{material}_{thickness}.html"
+            project_name_mat_thick = f"{project_name}_{material}_{thickness}".replace('.ewd', '')
+            report_file_path = f"{folder}\\{project_name_mat_thick}.html"
+
             try:
-                os.makedirs(os.path.dirname(report_file_path), exist_ok=True)
+                os.makedirs(os.path.dirname(report_file_path), exist_ok=True) #it needs a new HTML each time
             except OSError as e:
                 dlg.output_box(f"Fehler beim Ordner erstellen in {os.path.dirname(report_file_path)}")
 
-            project_name_mat_thick = f"{project_name}_{material}_{thickness}".replace('.ewd', '')
-            create_report(report_file_path, project_name_mat_thick, folder, img_ext, logo, nice_design, rotate, reports_pdfs_together, divide_material, sheets_values, materials_dict, 0)
+            with open(report_file_path, 'w', encoding='utf-8') as html_file:
+                create_report(report_file_path, html_file, project_name_mat_thick, folder, img_ext, logo, nice_design, rotate, reports_pdfs_together, divide_material, sheets_values, materials_dict, counter_efficiency_total, counter_for_full_pdf, 0)
+                if reports_pdfs_together:
+                    material_stats_obj.GEB_to_html(html_file, project_name, logo, reports_pdfs_together, counter_efficiency_total)
+                    close_html()
+                    output_pdf = os.path.join(folder, f'{project_name_mat_thick}.pdf')
+                    to_pdf(report_file_path, output_pdf)
 
-        else: #if not divide_material:
-            sheets = nest.get_sheets()
-            create_report(report_file_path, project_name, folder, img_ext, logo, nice_design, rotate, reports_pdfs_together, divide_material, sheets, materials_dict, counter_for_full_pdf)
+                else: #if not reports_pdfs_together
+                    close_html()
+                    output_pdf = os.path.join(folder, f'{project_name_mat_thick}.pdf')
+                    to_pdf(report_file_path, output_pdf)
+                    report_file_path = os.path.join(folder, f'Gesamteffizienbericht_{project_name_mat_thick}.html')
+                    with open(report_file_path, 'w', encoding='utf-8') as html_file_GEB:
+                        html_header_and_css(html_file_GEB, project_name_mat_thick, nice_design)
+                        material_stats_obj.GEB_to_html(html_file, project_name, logo, reports_pdfs_together, counter_efficiency_total)
+                        close_html()
+                        output_pdf = os.path.join(folder, f'{project_name_mat_thick}.pdf')
+                        to_pdf(report_file_path, output_pdf)
+        
+        else: #if not divide_material:    - in the loop of material_and_thickness
+            if counter_for_full_pdf == 0: 
+                with open(report_file_path, 'w', encoding='utf-8') as html_file:
+                    create_report(report_file_path, html_file, project_name, folder, img_ext, logo, nice_design, rotate, reports_pdfs_together, divide_material, sheets_values, materials_dict, counter_efficiency_total, counter_for_full_pdf, counter_sheet_in_sheets)
+
+            else:  #if counter_for_full_pdf != 0: 
+                with open(report_file_path, 'a', encoding='utf-8') as html_file:
+                    create_report(report_file_path, html_file, project_name, folder, img_ext, logo, nice_design, rotate, reports_pdfs_together, divide_material, sheets_values, materials_dict, counter_efficiency_total, counter_for_full_pdf, counter_sheet_in_sheets)
             counter_for_full_pdf +=1
+            counter_efficiency_total +=1
 
+
+    #after the loop of material_and_thickness
+    if not divide_material:
+
+        if reports_pdfs_together: #write GEB in the same big PDF at the end
+            with open(report_file_path, 'a', encoding='utf-8') as html_file: #append to the file
+                for material_stats_obj in materials_stats_list:
+                    test = type(material_stats_obj)
+                    material_stats_obj.GEB_to_html(html_file, project_name, logo, reports_pdfs_together, counter_efficiency_total)
+                    close_html(html_file)
+                    output_pdf = os.path.join(folder, f'{project_name}.pdf')
+                    to_pdf(report_file_path, output_pdf)
+
+        else:   #if not reports_pdfs_together:     #write GEB in the separate PDF at the end
+            close_html(html_file)
+            output_pdf = os.path.join(folder, f'{project_name}.pdf')
+            to_pdf(report_file_path, output_pdf)
+
+            report_file_path = os.path.join(folder, f'Gesamteffizienbericht_{project_name}.html')
+            with open(report_file_path, 'w', encoding='utf-8') as html_file_GEB:
+                html_header_and_css(html_file_GEB, project_name, nice_design)     
+                for material_stats_obj in materials_stats_list:
+                    material_stats_obj.GEB_to_html(html_file, project_name, logo, reports_pdfs_together, counter_efficiency_total)
+                output_pdf = os.path.join(folder, f'Gesamteffizienbericht_{project_name}.pdf')
+                close_html(html_file_GEB)
+                to_pdf(report_file_path, output_pdf)
 
 
 def run_config():
