@@ -633,6 +633,7 @@ def write_css_printing(html_file_object):
 
 
 
+
 def write_html(folder, html_file_object, logo, project_name, sheets_to_report, reports_pdfs_together, nice_design, divide_material, sheet_obj, counter_efficiency_total, last_sheet=None):
     """
     Get the sheet properties, write html file and piece properties, count efficiency for sheet and total efficiency.
@@ -673,39 +674,68 @@ def write_html(folder, html_file_object, logo, project_name, sheets_to_report, r
     counter_sheet_in_sheets = sheet_obj.counter_sheet_in_sheets     # the number of sheet in sheets_to_report
     img_path = sheet_obj.img_path
 
+
     pieces = nest.get_sheet_property(sheet, nest.SheetProperties.PIECES_NUMBER)
 
-    write_sheet_info_and_picture(sheet, html_file_object, logo, counter_sheet_in_sheets, img_path, project_name, sheets_to_report, reports_pdfs_together)
+    write_sheet_info_and_picture(sheet, html_file_object, logo, counter_sheet_in_sheets, img_path, project_name, sheets_to_report, reports_pdfs_together, divide_material)
 
     #write down the individual information about the components
     write_pieces_info(sheet, html_file_object)
 
-    line = '</TABLE>' #closing mainTable
+    line = '</TABLE>\n' #closing mainTable
     html_file_object.write(line)
 
-    if sheet:
-        efficiency_for_sheet(html_file_object, pieces, area, mat_leftover, mat_reusable)
+
+    efficiency_for_sheet(html_file_object, pieces, area, mat_leftover, mat_reusable)
 
     #dlg.output_box(f"Ein Fehler ist beim Schreiben der Datei '{total_report_path}' aufgetreten: {e}")
 
-    line = '</DIV>' #closing <DIV class="table-container">
+    line = '    </DIV>\n' #closing <DIV class="table-container">
     html_file_object.write(line)
     counter_sheet_in_sheets += 1  #the number of sheet in sheets_to_report
     return counter_sheet_in_sheets
 
 
 
+def efficiency_for_sheet(html_file_object, pieces, area, mat_leftover, mat_reusable):
+    """
+    Efficiency report for each sheet
+    
+    :param html_file_object: the file object to which the HTML content will be written
+    :type html_file_object: file-like object (e.g., obtained via open() in write mode)
+    :param pieces: the number of pieces
+    :type pieces: int
+    :param area: the area of the sheet
+    :type area: float
+    :param mat_leftover: the percentage of not reusable material
+    :type mat_leftover: float
+    :param mat_reusable: the percentage of reusable material
+    :type mat_reusable: float
+    """
 
-
-
-
-
-
-
-
-
-
-
+    html_file_object.write(f"""
+    <TABLE class="adjustable-table">
+        <TH colspan="3" class="center-text">Effizienzbericht</TH>
+        <TR>
+            <TD>Gutteile</TD>
+            <TH colspan="2" align="left">{int(pieces)}</TH>
+        </TR>
+        <TR>
+            <TD>Fläche der Platte</TD>
+            <TH colspan="2" align="left">{round(area, 2)} m²</TH>
+        </TR>
+        <TR>
+            <TD class="green">Wiederverwendbares Material</TD>
+            <TD class="green">{round(mat_reusable * area /100, 2)} m²</TD>
+            <TD class="green td-right">{round(mat_reusable, 2)}% der Platte</TD>
+        </TR>
+        <TR>
+            <TD class="grey">Nicht wiederverwendbares Material</TD>
+            <TD class="grey">{round(mat_leftover * area /100, 2) } m²</TD>
+            <TD class="grey td-right">{round(mat_leftover, 2)}% der Platte</TD>
+        </TR>
+    </TABLE>
+""")
 
 
 
