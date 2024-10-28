@@ -148,12 +148,7 @@ def nesting_report():
 
     set_view_and_shading(nice_design)
 
-    #try:
-
-    #what i do:
-    #sort sheets depending on material and thickness
-    #for each materials_dict[key] generate html file, with one or mpre shets; if len(sheets) > 1, write (optionally, separate) general report
-
+    
     materials_dict = sort_for_material() #basically sorting and saving as a dictionary
 
     materials_stats_list = []
@@ -391,11 +386,7 @@ def create_report(report_file_path, project_name, folder, img_ext, logo, nice_de
             else:
                 output_pdf = os.path.join(folder, 'report.pdf')
                 test = f'{project_name}.pdf'
-                #!!!!!!!!!!!!!!!!!!
-
-
-
-
+        
 
 
             to_pdf(report_file_path, output_pdf)
@@ -478,7 +469,6 @@ def write_nice_css(html_file_object):   #here I could do a fancier design, if th
         table {
             border: 1px solid rgb(186, 186, 186);
             margin-bottom: 10px;
-            /* border-collapse: collapse;   uncomment for a singular line border*/
         }
 
         .table-container {
@@ -486,8 +476,8 @@ def write_nice_css(html_file_object):   #here I could do a fancier design, if th
         }
 
         .mainTable {
-            display: inline-block;
-            width: fit-content;
+            display: table;
+            width: 100%;
         }
 
         .adjustable-table {
@@ -736,13 +726,6 @@ def efficiency_for_sheet(html_file_object, pieces, area, mat_leftover, mat_reusa
         </TR>
     </TABLE>
 """)
-
-
-
-
-
-
-
 
 
 
