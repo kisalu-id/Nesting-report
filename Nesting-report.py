@@ -1,33 +1,82 @@
 import os
-from datetime import datetime
+import datetime
 import configparser
 import ewd
-from pdfkit import pdfkit
+import subprocess
 from ewd import groups
 from company import gdb
 from company import dlg
 from company import nest
-from company.gdb import cad
-from company.gdb import view
+from company import cad
+from company import view
+import sclcore
 from sclcore import do_debug
 from sclcore import execute_command_bool as exec_bool
+import config
+
 
 
 class ReportSheet():
-    def __init__(self, sheet, mat_leftover, mat_reusable, area, count, img_path, total_area, total_reusable, total_garbage):
+    """
+    Represents a report entry for a specific sheet, containing key metrics and an associated image.
+
+    :param sheet: the name of the sheet
+    :type sheet: str
+    :param mat_leftover: the percentage of material that is not reusable for this sheet
+    :type mat_leftover: float
+    :param mat_reusable: the percentage of material that is reusable for this sheet
+    :type mat_reusable: float
+    :param area: the total area of the sheet in square meters
+    :type area: float
+    :param counter_sheet_in_sheets: the index of this sheet among sheets in sheets_to_report (sheets_to_report are values of the key [material, thickness])
+    :type counter_sheet_in_sheets: int
+    :param img_path: the file path to an image of the sheet
+    :type img_path: str
+    """
+    def __init__(self, sheet, mat_leftover, mat_reusable, area, counter_sheet_in_sheets, img_path):
         self.sheet = sheet
         self.mat_leftover = mat_leftover
         self.mat_reusable = mat_reusable
         self.area = area
-        self.count = count
+        self.counter_sheet_in_sheets = counter_sheet_in_sheets   #index of this sheet among sheets_to_report
         self.img_path = img_path
-        self.total_area = total_area
-        self.total_reusable = total_reusable
-        self.total_garbage = total_garbage
 
 
 class MaterialStats:
+    """
+    Represents the statistics for sheets from a specific material-thickness pair used in a project.
+
+    Attributes:
+        material (str): the name of material used
+        thickness (float): the thickness of the material in millimeters
+        number_of_sheets (int): the number of sheets in sheets_to_report (sheets_to_report are values of the key [material, thickness])
+        total_area (float): the total area of the sheets in sheets_to_report in square meters
+        total_reusable (float): the total percentage of reusable material across sheets in sheets_to_report
+        total_garbage (float): the total percentage of non-reusable (garbage) material across sheets in sheets_to_report
+        average_reusable (float): the average percentage of reusable material per sheet
+        average_garbage (float): the average percentage of non-reusable material per sheet
+        total_reusable_material (float): the total area of reusable material per sheet (in m²)
+        total_non_reusable_material(float): the total area of non-reusable material per sheet (in m²)
+    """
+
     def __init__(self, material, thickness, number_of_sheets, total_area, total_reusable, total_garbage):
+        """
+        Initializes the MaterialStats object with basic information about the sheets from a specific material-thickness pair
+        and calculates derived values, such as reusable and garbage material percentages.
+
+        :param material: the name of material
+        :type material: str
+        :param thickness: the thickness of the material in millimeters
+        :type thickness: float
+        :param number_of_sheets: the number of sheets in sheets_to_report (sheets_to_report are values of the key [material, thickness])
+        :type number_of_sheets: int
+        :param total_area: the total area of the sheets in square meters
+        :type total_area: float
+        :param total_reusable: the total percentage of reusable material across sheets in sheets_to_report
+        :type total_reusable: float
+        :param total_garbage: the total percentage of non-reusable (garbage) material across sheets in sheets_to_report
+        :type total_garbage: float
+        """
         self.material = material
         self.thickness = thickness
         self.number_of_sheets = number_of_sheets
@@ -37,65 +86,82 @@ class MaterialStats:
         
         self.average_reusable = total_reusable / number_of_sheets
         self.average_garbage = total_garbage / number_of_sheets
-        self.gesamt_wiederverwendbares_material = total_area * total_reusable / 100 / number_of_sheets
-        self.gesamt_nicht_wiederverwendbares_material = total_area * total_garbage / 100 / number_of_sheets
+        self.total_reusable_material = total_area * total_reusable / 100 / number_of_sheets
+        self.total_non_reusable_material= total_area * total_garbage / 100 / number_of_sheets
 
-    def GEB_to_html(self, html_file_object, project_name, logo, reports_pdfs_together, counter_efficiency_total):
-        
-        line = '<HEADER '
-        if counter_efficiency_total == 0:
-            line += ' class="page-break-before" '
-        line += 'style="display: block; width: 100%; text-align: left;" > '
-        line += f'<IMG src="file:///{logo}" alt="Logo" style="vertical-align: middle; width: 70px; height: 70px; margin: 20px;"> '
-        line += f'<SPAN style="font-size: 35px; margin: 20px; vertical-align: middle;">Projekt: {os.path.splitext(project_name)[0]} </SPAN>'
-        line += '</HEADER> '
-        html_file_object.write(line)
 
-        # Write the report details
+    def GEB_to_html(self, html_file_object, project_name, logo, nice_design, i):
+        """
+        Generates HTML for one material-thickness total efficiency report with statistics.
+
+        :param html_file_object: the file object to which the HTML content will be written
+        :type html_file_object: file-like object
+        :param project_name: the name of the project to be included in the report
+        :type project_name: str
+        :param logo: path to the company logo file to be included in the report
+        :type logo: str
+        :param nice_design: specifies if the report should have a nice colorful design (True) or a simple, black-and-white design (False) -- it's not used in this function for now, but it may be used later
+        :type nice_design: bool
+        :param i: index used to determine when to insert a page break, to iterate through each html_file_object in a list
+        :type i: int
+        """
+
+        if i == 0 or i % 4 == 0:
+            line = '\n<DIV class="page-break-after"></DIV>\n'
+            html_file_object.write(line)
+
+        if i == 0 or i % 4 == 0:
+            line = '<HEADER style="display: block; width: 100%; text-align: left;">\n'
+            line += f'<IMG src="file:///{logo}" alt="company Logo" style="vertical-align: middle; width: 60px; height: 60px; margin: 0 10px 15px 0;">\n'
+            line += f'<SPAN style="font-size: 35px; padding: 0 0 8px 0; ">Projekt: {os.path.splitext(project_name)[0]} </SPAN>\n'
+            line += '</HEADER>\n'
+            html_file_object.write(line)
+
         line = f"""
-            <TABLE id="thick-border" class="adjustable-table">
-                <TH colspan="3" class="center-text">Gesamtwirkungsgradbericht</TH>
+    <TABLE id="thick-border" class="adjustable-table">
+        <TH colspan="3" class="center-text">Gesamtwirkungsgradbericht</TH>
 
-                <TR>
-                    <TH align="left">Material und Dicke</TH>
-                    <TD colspan="2" align="left">{self.material}   {self.thickness} mm</TD>
-                </TR>
+        <TR>
+            <TH align="left">Material und Dicke</TH>
+            <TD colspan="2" align="left">{self.material}   {self.thickness} mm</TD>
+        </TR>
 
-                <TR>
-                    <TH align="left">Anzahl Sheets</TH>
-                    <TH colspan="2" align="left">{self.number_of_sheets}</TH>
-                </TR>
+        <TR>
+            <TH align="left">Anzahl Sheets</TH>
+            <TH colspan="2" align="left">{self.number_of_sheets}</TH>
+        </TR>
 
-                <TR>
-                    <TD>Gesamtfläche</TD>
-                    <TH colspan="2" align="left">{round(self.total_area, 2)} m²</TH>
-                </TR>
+        <TR>
+            <TD>Gesamtfläche</TD>
+            <TH colspan="2" align="left">{round(self.total_area, 2)} m²</TH>
+        </TR>
 
-                <TR>
-                    <TD class="green">Gesamt wiederverwendbares Material</TD>
-                    <TD class="green">{round(self.gesamt_wiederverwendbares_material, 2)} m²</TD>
-                    <TD class="green td-right">{round(self.gesamt_wiederverwendbares_material / self.total_area * 100, 2)} %</TD>
-                </TR>            
-                <TR>
-                    <TD class="grey">Gesamt nicht wiederverwendbares Material</TD>
-                    <TD class="grey">{round(self.gesamt_nicht_wiederverwendbares_material, 2)} m²</TD>
-                    <TD class="grey td-right">{round(self.gesamt_nicht_wiederverwendbares_material / self.total_area * 100, 2)} %</TD>
-                </TR>
+        <TR>
+            <TD class="green">Gesamt wiederverwendbares Material</TD>
+            <TD class="green">{round(self.total_reusable_material, 2)} m²</TD>
+            <TD class="green td-right">{round(self.total_reusable_material / self.total_area * 100, 2)} %</TD>
+        </TR>            
+        <TR>
+            <TD class="grey">Gesamt nicht wiederverwendbares Material</TD>
+            <TD class="grey">{round(self.total_non_reusable_material, 2)} m²</TD>
+            <TD class="grey td-right">{round(self.total_non_reusable_material/ self.total_area * 100, 2)} %</TD>
+        </TR>
 
-                <TR>
-                    <TD class="green">Wiederverwendbares Material pro Platte im Durchschnitt:</TD>
-                    <TD class="green">{round(self.total_area * self.average_reusable / 100 / self.number_of_sheets, 2)} m²</TD>
-                    <TD class="green td-right">{round(self.total_reusable / self.number_of_sheets, 2)}%</TD>
-                </TR>
+        <TR>
+            <TD class="green">Wiederverwendbares Material pro Platte im Durchschnitt:</TD>
+            <TD class="green">{round(self.total_area * self.average_reusable / 100 / self.number_of_sheets, 2)} m²</TD>
+            <TD class="green td-right">{round(self.total_reusable / self.number_of_sheets, 2)}%</TD>
+        </TR>
 
-                <TR>
-                    <TD class="grey">Nicht wiederverwendbares Material pro Platte im Durchschnitt</TD>
-                    <TD class="grey">{round(self.total_area * self.average_garbage / 100 / self.number_of_sheets, 2)} m²</TD>
-                    <TD class="grey td-right">{round(self.total_garbage / self.number_of_sheets, 2)}%</TD>
-                </TR>
-            </TABLE>
+        <TR>
+            <TD class="grey">Nicht wiederverwendbares Material pro Platte im Durchschnitt</TD>
+            <TD class="grey">{round(self.total_area * self.average_garbage / 100 / self.number_of_sheets, 2)} m²</TD>
+            <TD class="grey td-right">{round(self.total_garbage / self.number_of_sheets, 2)}%</TD>
+        </TR>
+    </TABLE>
             """
         html_file_object.write(line)
+
 
 
 def create_object_MaterialStats(material_and_thickness, sheets_values):
