@@ -325,25 +325,33 @@ def create_object_material_stats(material_and_thickness, sheets_values):
     )
 
 
-
-
-
-
-
-
 def run_config():
+    """
+    Executes the configuration process by calling the run_config() method from the config module.
+    This is triggered when a user opens nesting and clicks on the 'Report config' button.
+    """
     config.run_config()
 
 
 def read_config_ini():
+    """
+    Returns a set of configuration parameters used for generating reports.
+
+    :return: a tuple containing:
+        - rotate: whether the pages should be 90° rotated (bool)
+        - general_folder: where the folder where reports will be stored (str)
+        - nice_design: whether the report will have a visually appealing design (bool)
+        - reports_pdfs_together: whether sheet report and material efficiency report will be combined into a single PDF (bool)
+        - only_measures_BW: whether the report will contain only measurements in black and white (bool)
+        - divide_material: whether the materials should be divided into separate sections (bool)
+    :rtype: tuple
+    """
+
     try:
         ini_path = ewd.explode_file_path(r'%MACHPATH%\script\config.ini')
 
         config = configparser.ConfigParser()
         config.read(ini_path)
-
-        rotate = config.get('Einstellung', 'rotate') #if True, rotate
-        rotate = False if rotate == "0" or rotate =="False" else True
 
         #path for the folder
         general_folder =  config.get('Pfad', 'report_pfad')
@@ -362,6 +370,9 @@ def read_config_ini():
 
         divide_material = config.get('Druckeinstellungen', 'divide_material') #if True, divide the report depending on the material
         divide_material = False if divide_material == "0" or divide_material =="False" else True
+        
+        rotate = config.get('Druckeinstellungen', 'rotate') #if True, rotate
+        rotate = False if rotate == "0" or rotate =="False" else True
 
         return rotate, general_folder, nice_design, reports_pdfs_together, only_measures_BW, divide_material
 
@@ -379,13 +390,10 @@ def read_config_ini():
         dlg.output_box(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
 
 
-def get_or_create_project_name():
-    project_name = ewd.get_project_name() #get the name of the opened ewd project
-    if not project_name.endswith (".ewd"):
-        project_name = datetime.datetime.now().strftime("%Y%m%d_%H-%M")
-        ewd.save_project(ewd.explode_file_path(f"%TEMPPATH%//{project_name}.ewd"))
-        project_name = f"{project_name}.ewd"
-    return project_name
+
+
+
+
 
 
 
