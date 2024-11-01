@@ -391,27 +391,56 @@ def read_config_ini():
 
 
 
+def get_or_create_project_name():
+    ###if project is not saved --> save it in temp folder in EW or in a temp dircetory in the config file
+    project_name = ewd.get_project_name() #get the name of the opened ewd project
+    if not project_name.endswith (".ewd"):
+        project_name = datetime.datetime.now().strftime("%Y%m%d_%H-%M")
+        ewd.save_project(ewd.explode_file_path(f"%TEMPPATH%//{project_name}.ewd")) # C:\...\Temp
+    else:
+        project_name = project_name.replace('.ewd', '')
+    return project_name
+
+
+
+def make_or_delete_folder(general_folder, project_name):
+    """
+    Creates a folder for the project if it doesn't exist, or deletes and recreates it if it already exists.
+
+    - If a folder already exists at the specified path, it is deleted and recreated to ensure a clean directory.
+    - If the folder does not exist, it will be created using the provided `general_folder` and `project_name`.
+
+    :param general_folder: The base directory where the project folder will be created or recreated.
+    :type general_folder: str
+    :param project_name: The name of the project, which will be used as the folder name.
+    :type project_name: str
+    :return: The full path to the created (or recreated) project folder.
+    :rtype: str
+    """
+    delete_folder = 1
+    #subfolder with the project name: it will be deleted, if it already exists, then the new folder will be created
+    #(so the date of creation of this folder on user's pc will be fresh -> easy to sort)
+    folder = os.path.join(general_folder, f'{os.path.splitext(project_name)[0]}')
+
+    #if folder exists (i set this setting as always on), delete
+    if delete_folder and os.path.exists(folder):
+        #maybe later add "ok" and "cancel"
+        remove_existing_folder_with_same_name(folder)
+
+    else: #if folder doesn't exist, create
+        try:
+            os.makedirs(folder, exist_ok=False)
+        except OSError as e:
+            dlg.output_box(f"Fehler beim Ordner erstellen in {folder}")
+    return folder
 
 
 
 
 
 
-def remove_existing_folder_with_same_name(folder):
-    try:
-        if os.path.exists(folder):
-            dlg.output_box(f"Der Ordner '{folder}' und sein Inhalt werden gelöscht")
-            #add ok / cancel - config
-            for root, dirs, files in os.walk(folder, topdown=False):
-                for name in files:
-                    os.remove(os.path.join(root, name))
-                for name in dirs:
-                    os.rmdir(os.path.join(root, name))
-            os.rmdir(folder)
-        else:
-            dlg.output_box(f"Der Ordner '{folder}' existiert nicht.")
-    except Exception as e:
-        dlg.output_box(f"Ein Fehler ist aufgetreten: {e}")
+
+
 
 def create_report_file_path(folder):
     report_file_path = f'{folder}\\report.html'
