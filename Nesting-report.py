@@ -435,15 +435,41 @@ def make_or_delete_folder(general_folder, project_name):
     return folder
 
 
+def remove_existing_folder_with_same_name(folder):
+    """
+    If delete_folder is True, remove the existing folder with the same name.
+
+    :param folder: directory where the generated HTML and PDF reports will be saved
+    :type folder: str
+    """
+    try:
+        if os.path.exists(folder):
+            #dlg.output_box(f"Der Ordner '{folder}' und sein Inhalt werden gelöscht")
+            # maybe add ok / cancel in the config
+            for root, dirs, files in os.walk(folder, topdown=False):
+                for name in files:
+                    os.remove(os.path.join(root, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
+            os.rmdir(folder)
+        else:
+            dlg.output_box(f"Der Ordner '{folder}' existiert nicht.")
+    except Exception as e:
+        dlg.output_box(f"Ein Fehler ist aufgetreten: {e}")
 
 
+def create_report_file_path(folder, poject_name):
+    """
+    Generates the file path for the HTML report file and ensures the folder exists.
 
-
-
-
-
-def create_report_file_path(folder):
-    report_file_path = f'{folder}\\report.html'
+    :param folder: the directory where the report will be saved
+    :type folder: str
+    :param project_name: the name of the project, used to create the report filename
+    :type project_name: str
+    :return: the full file path for the HTML report
+    :rtype: str
+    """
+    report_file_path = os.path.join(folder, f'{poject_name}.html')
     try:
         os.makedirs(os.path.dirname(report_file_path), exist_ok=True)
     except OSError as e:
@@ -451,12 +477,25 @@ def create_report_file_path(folder):
     return report_file_path
 
 
-
 def set_view_and_shading(nice_design):
+    """
+    Sets the viewing perspective and shading options for the design environment.
+    This function switches to a top view in wireframe mode. If `nice_design` is True, it applies shading to the view.
+
+    :param nice_design: specifies whether to use a nicer design with shading (True) or a simple wireframe view (False)
+    :type nice_design: bool
+    """
     #switch to top view; wireframe
     view.set_std_view_eye()
-    if not nice_design:
+    # exec_bool("SetWireFrame")
+    if nice_design:
         exec_bool("SetShading")
+
+
+
+
+
+
 
 
 
