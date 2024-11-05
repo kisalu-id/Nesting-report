@@ -477,7 +477,7 @@ def create_report_file_path(folder, poject_name):
     return report_file_path
 
 
-def set_view_and_shading(nice_design):
+def set_view_and_shading(remove_color_fill):
     """
     Sets the viewing perspective and shading options for the design environment.
     This function switches to a top view in wireframe mode. If `nice_design` is True, it applies shading to the view.
@@ -485,23 +485,30 @@ def set_view_and_shading(nice_design):
     :param nice_design: specifies whether to use a nicer design with shading (True) or a simple wireframe view (False)
     :type nice_design: bool
     """
-    #switch to top view; wireframe
+    #switch to top view;
     view.set_std_view_eye()
-    # exec_bool("SetWireFrame")
-    if nice_design:
+
+    if remove_color_fill:
+        exec_bool("SetWireFrame")
+    else:
         exec_bool("SetShading")
 
 
 
-
-
-
-
-
-
 def sort_for_material():
+    """
+    Iterates through each sheet and creates a dictionary with key-value pairs to sort the sheets by material.
+    The function collects information about each sheet and organizes it into a dictionary where the keys 
+    are tuples of (material, thickness) and the values are lists of sheets corresponding to those keys. 
+    Additionally, it calculates the total number of sheets in a project.
+
+    :return: a tuple containing:
+        - materials_dict (dict): a dictionary with materials as keys and lists of sheets as values
+        - total_sheets_amount (int): the total number of sheets processed
+    """
     materials_dict = {}
     sheets = nest.get_sheets()
+    total_sheets_amount = len(sheets)
     for sheet in sheets:
         material = nest.get_sheet_property(sheet, nest.SheetProperties.MATERIAL)
         thickness = nest.get_sheet_property(sheet, nest.SheetProperties.THICKNESS)
@@ -511,65 +518,89 @@ def sort_for_material():
         else:
             #materials_dict[(material, thickness)] = []   #tuple = list
             materials_dict[key] = [sheet]
-    return materials_dict
+    return materials_dict, total_sheets_amount
 
 
-def create_report(report_file_path, project_name, folder, img_ext, logo, nice_design, rotate, reports_pdfs_together, divide_material, sheets_to_report, materials_dict, counter_efficiency_total, counter_for_full_pdf):
+def create_report(report_file_path, html_file, project_name, folder, img_ext, logo, nice_design, rotate, reports_pdfs_together, divide_material, sheets_to_report, total_sheets_amount, materials_dict, counter_for_full_pdf, counter_sheet_in_sheets):
+    """
+    Creates an HTML report by calling necessary functions and handles sheet rotation if required.
+    This function is intended to be called exclusively from the nesting_report() function, allowing for different parameters 
+    to be passed based on the specific situation.
+    
+    :param report_file_path: the file path where the report will be saved
+    :type report_file_path: str
+    :param html_file: the HTML file object to which content will be written
+    :type html_file: file-like object
+    :param project_name: the name of the project for inclusion in the report
+    :type project_name: str
+    :param folder: the folder where the report will be located
+    :type folder: str
+    :param img_ext: the file extension for images included in the report (e.g., '.jpg')
+    :type img_ext: str
+    :param logo: the file path to the logo image to be included in the report
+    :type logo: str
+    :param nice_design: specifies if the report should use a nice design (True) or a simple design (False)
+    :type nice_design: bool
+    :param rotate: indicates whether to rotate the sheets (True) or not (False)
+    :type rotate: bool
+    :param reports_pdfs_together: whether sheet report and material efficiency report will be combined into a single PDF
+    :type reports_pdfs_together: bool
+    :param divide_material: indicates if the report should be divided on separate PDFs by material types, or should it be written in a single PDF
+    :type divide_material: bool
+    :param sheets_to_report: a collection of sheets to be included in the report
+    :type sheets_to_report: list
+    :param total_sheets_amount: the total number of sheets from the project
+    :type total_sheets_amount: int
+    :param materials_dict: a dictionary with keys as tuples of (material, thickness) and values as lists of corresponding sheets
+    :type materials_dict: dict
+    :param counter_for_full_pdf: a counter, that indicates to write the HTML header and CSS at the beginning of the PDF, if counter_for_full_pdf = 0
+    :type counter_for_full_pdf: int
+    :param counter_sheet_in_sheets: an index for tracking the current sheet within sheets_to_report
+    :type counter_sheet_in_sheets: int
+    """
+    
+
     try:
-        with open(report_file_path, 'w', encoding='utf-8') as html_file: #html_file is an object
+        # #if reports_pdfs_together and divide_material:
+        # #I ALWAYS count stuff separately for material_thickness
+        #i need to have these variables as 0 for each key only if reports are split for material, 
+        #     or if that's the first key (pdf) for reports_pdfs_together=True
+        #it could be if divide_material or counter_for_full_pdf == 0: , 
+        #     but it's the same thing since in nesting_report if divide_material  I'm always passing 0 for counter_for_full_pdf
+        if counter_for_full_pdf == 0: 
 
-            if counter_for_full_pdf == 0: 
-                #white header and css, IF divide_material=True (bc then counter_for_full_pdf==0) OR if that's the first key (pdf) for reports_pdfs_together=True
+            #HTML header, file name and css
+            html_header_and_css(html_file, project_name, nice_design)
 
-                #HTML header and file name
-                html_header_write(html_file, project_name)
-
-                #here add write_fancy_css or write_css_for_printing
-                if nice_design:
-                    write_nice_css(html_file)
-                else:
-                    write_css_printing(html_file)
-
-            counter_sheet_in_sheets = 0
-
-            if rotate: #rotate sheets by 90 degrees
-                for sheet in sheets_to_report:
-                    cad.rotate(sheet, 0, 0, -90, False)
-
-            #if reports_pdfs_together and divide_material:
-            #I ALWAYS count stuff separately for material
-            if counter_for_full_pdf == 0:
-                #i need to have these variables as 0 for each key only if reports are split for material, or if that's the first key (pdf) for reports_pdfs_together=True
-                #it could be if divide_material or counter_for_full_pdf == 0: but it's the same thing since in nesting_report if divide_material  I'm always passing 0 for counter_for_full_pdf
-                total_area = 0        # m2
-                total_garbage = 0     # %
-                total_reusable = 0    # %
-
+        if rotate: #rotate sheets by 90 degrees
             for sheet in sheets_to_report:
-                sheet_obj = get_sheet_obj(folder, sheet, counter_sheet_in_sheets, img_ext, total_area, total_reusable, total_garbage)
-
-                total_area, total_garbage, total_reusable, counter_sheet_in_sheets = write_html(folder, html_file, logo, project_name, sheets_to_report, reports_pdfs_together, nice_design, divide_material, sheet_obj, counter_efficiency_total)
-
-                if rotate:
-                    cad.rotate(sheet, 0, 0, 90, False)
-
-            close_html(html_file)
-
-        try:
-            if divide_material:
-                output_pdf = os.path.join(folder, f'{project_name}.pdf')
-            else:
-                output_pdf = os.path.join(folder, 'report.pdf')
-                test = f'{project_name}.pdf'
-        
+                cad.rotate(sheet, 0, 0, -90, False)
 
 
-            to_pdf(report_file_path, output_pdf)
-        except Exception as e:
-            dlg.output_box(f" :C {e}")
+        for sheet in sheets_to_report:
+            sheet_obj = get_sheet_obj(folder, sheet, counter_sheet_in_sheets, img_ext)
+
+            counter_sheet_in_sheets = write_html(folder, html_file, logo, project_name, sheets_to_report, reports_pdfs_together, nice_design, divide_material, sheet_obj, total_sheets_amount)
+
+            if rotate:
+                cad.rotate(sheet, 0, 0, 90, False)
 
     except IOError as e:
         dlg.output_box(f"Ein Fehler ist beim Schreiben der Datei '{report_file_path}' aufgetreten: {e}")
+    except Exception as e:
+        dlg.output_box(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
