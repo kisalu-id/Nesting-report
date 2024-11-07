@@ -592,58 +592,55 @@ def create_report(report_file_path, html_file, project_name, folder, img_ext, lo
 
 
 
+def get_sheet_obj(folder, sheet, counter_sheet_in_sheets, img_ext):
+    """
+    Creates a ReportSheet object for a given sheet by extracting its properties 
+    and generating the corresponding image path.
 
+    :param folder: the folder where the sheet images are stored
+    :type folder: str
+    :param sheet: the name of the sheet
+    :type sheet: str
+    :param counter_sheet_in_sheets: the index of this sheet among sheets_to_report
+    :type counter_sheet_in_sheets: int
+    :param img_ext: the file extension for the sheet's image (e.g., '.jpg')
+    :type img_ext: str
 
-
-
-
-
-
-
-
-
-
-
-def get_sheet_obj(folder, sheet, counter_sheet_in_sheets, img_ext, total_area, total_reusable, total_garbage):
-
+    :return: a ReportSheet object containing the sheet's details
+    :rtype: ReportSheet
+    """
     img_path = f"{folder}\{sheet}{img_ext}"
     area = nest.get_sheet_property(sheet, nest.SheetProperties.AREA)
     mat_leftover = nest.get_sheet_property(sheet, nest.SheetProperties.RATE_LEFT_OVER)      # % of sheet   garbage not reusable material
     mat_reusable = nest.get_sheet_property(sheet, nest.SheetProperties.RATE_REUSABLE)       # % of sheet   reusable material
     area = (area / 1000000)   # m2
-    total_area += area        # m2
-    total_reusable += mat_reusable   # %
-    total_garbage += mat_leftover    # %
 
     if not os.path.isfile(img_path):
         os.makedirs(os.path.dirname(img_path), exist_ok=True)
 
     view.zoom_on_object(sheet, ratio=1)
-    nest.get_sheet_preview(sheet, img_path, 0.35) # 0.35, so the lines will be thicker
+    nest.get_sheet_preview(sheet, img_path, 0.3) # 0.3, so the lines will be thicker
 
-    #all the html, incl. efficiency
     return ReportSheet(
         sheet=sheet,
         mat_leftover=mat_leftover,
         mat_reusable=mat_reusable,
         area=area,
-        counter_sheet_in_sheets=counter_sheet_in_sheets,
+        counter_sheet_in_sheets=counter_sheet_in_sheets,   #index of this sheet among sheets_to_report
         img_path=img_path,
-        total_area=total_area,
-        total_reusable=total_reusable,
-        total_garbage=total_garbage
     )
 
 
-
-def html_header_write(html_file_object, project_name):
+def html_header_and_css(html_file_object, project_name, nice_design):
     """
-    Write HTML header
+    Write HTML header and chosen CSS style. 
 
     :param html_file_object: the file object to which the HTML content will be written
     :type html_file_object: file-like object (e.g., obtained via open() in write mode)
     :param project_name: the name of the project
     :type project_name: str
+    :param nice_design: specifies if the report should use a nice design (True) or a simple design (False)
+    :type nice_design: bool
     """
 
     line = f"""<!DOCTYPE HTML>
@@ -654,6 +651,26 @@ def html_header_write(html_file_object, project_name):
     <TITLE>Nesting report for {project_name}</TITLE>
     """
     html_file_object.write(line)
+
+    if nice_design:
+        write_nice_css(html_file_object)
+    else:
+        write_css_printing(html_file_object)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
