@@ -23,6 +23,10 @@ def run_config():
 
     cfg.add_parameter('Pfad', 'Pfad\\report_pfad', 'Report Pfad wählen', ConfigParamType.DIRECTORY, ewd.explode_file_path('%TEMPPATH%'))
 
-
     cfg.run()
 
+
+
+
+if __name__ == '__main__':
+    run_config()
