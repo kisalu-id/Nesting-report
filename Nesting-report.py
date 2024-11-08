@@ -659,22 +659,7 @@ def html_header_and_css(html_file_object, project_name, nice_design):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def write_nice_css(html_file_object):   #here I could do a fancier design, if that would be a good idea
+def write_nice_css(html_file_object):
     """
     Write vissually appealing CSS if nice_design is True.
 
@@ -692,15 +677,17 @@ def write_nice_css(html_file_object):   #here I could do a fancier design, if th
         table {
             border: 1px solid rgb(186, 186, 186);
             margin-bottom: 10px;
+            /* border-collapse: collapse;   uncomment for a singular line border*/
         }
 
         .table-container {
-            display: table;
+            display:inline-block;
+            page-break-inside: avoid;
         }
 
         .mainTable {
-            display: table;
-            width: 100%;
+            display: inline-block;
+            width: fit-content;
         }
 
         .adjustable-table {
@@ -709,10 +696,6 @@ def write_nice_css(html_file_object):   #here I could do a fancier design, if th
 
         .page-break-after {
             page-break-after: always;
-        }
-
-        .page-break-before {
-            page-break-before: always;
         }
 
         th, td {
@@ -757,10 +740,10 @@ def write_nice_css(html_file_object):   #here I could do a fancier design, if th
             text-align: right;
             font-size: 20px;
         }
-
     </STYLE>
-    </HEAD>
-    <BODY>
+</HEAD>
+
+<BODY>
 """
     html_file_object.write(line)
 
@@ -788,12 +771,12 @@ def write_css_printing(html_file_object):
         }
 
         .table-container {
-            display: table;
+            display:inline-block;
         }
 
         .mainTable {
             display: table;
-            width: 100%; /*or width: fit-content;    ?*/
+            width: 100%;
         }
 
         .adjustable-table {
@@ -802,10 +785,6 @@ def write_css_printing(html_file_object):
 
         .page-break-after {
             page-break-after: always;
-        }
-
-        .page-break-before {
-            page-break-before: always;
         }
 
         th, td {
@@ -837,12 +816,36 @@ def write_css_printing(html_file_object):
             text-align: right;
             font-size: 20px;
         }
-
     </STYLE>
     </HEAD>
     <BODY>
 """
     html_file_object.write(line)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
