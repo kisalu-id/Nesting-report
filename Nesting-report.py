@@ -823,65 +823,34 @@ def write_css_printing(html_file_object):
     html_file_object.write(line)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def write_html(folder, html_file_object, logo, project_name, sheets_to_report, reports_pdfs_together, nice_design, divide_material, sheet_obj, counter_efficiency_total, last_sheet=None):
+def write_html(folder, html_file_object, logo, project_name, sheets_to_report, reports_pdfs_together, nice_design, divide_material, sheet_obj, total_sheets_amount):
     """
-    Get the sheet properties, write html file and piece properties, count efficiency for sheet and total efficiency.
+    Gets the sheet properties, writes HTML file, includes piece properties, 
+    and counts the efficiency for each sheet as well as the total efficiency.
 
-    :param html_file_object: the file object to which the HTML content will be written
-    :type html_file_object: file-like object (e.g., obtained via open() in write mode)
-    :param logo: the URL of the logo image file
-    :type logo: str
-    :param project_name: the name of the project
-    :type project_name: str
-    :param sheet: the sheet name
-    :type sheet: str
-    :param sheets: a list of sheets
-    :type sheets: list
-    :param counter_sheet_in_sheets: the number of sheet in sheets_to_report
-    :type counter_sheet_in_sheets: int
-    :param total_area: the total area of all sheets, to use for total_efficiency for the last sheet
-    :type total_area: float
-    :param mat_leftover: the percentage of not reusable material
-    :type mat_leftover: float
-    :param mat_reusable: the percentage of reusable material
-    :type mat_reusable: float
-    :param total_reusable: the total percentage of reusable material
-    :type total_reusable
-    :param area: the area of the sheet
-    :type area: float
-    :param reports_pdfs_together: whether all reports should be combined into a single PDF; if True, the reports are merged into one document
-    :type reports_pdfs_together: bool
-    :param folder: directory where the generated HTML and PDF reports will be saved
+    :param folder: the folder where the report will be saved
     :type folder: str
-    :param nice_design: style of the report. If True, the report will be colorful and visually appealing; if False, the report will be in black and white, optimized for printing
+    :param html_file_object: the file object to which the HTML content will be written
+    :type html_file_object: file-like object
+    :param logo: the path to the logo to be included in the report
+    :type logo: str
+    :param project_name: the name of the project for inclusion in the report
+    :type project_name: str
+    :param sheets_to_report: a collection of sheets to be included in the report
+    :type sheets_to_report: list
+    :param reports_pdfs_together: whether the sheet report and material efficiency report will be combined into a single PDF (bool)
+    :type reports_pdfs_together: bool
+    :param nice_design: specifies if the report should use a nice design (True) or a simple design (False)
     :type nice_design: bool
+    :param divide_material: indicates if the report should be divided into separate PDFs by material types, or if it should be written in a single PDF
+    :type divide_material: bool
+    :param sheet_obj: the ReportSheet object containing details for the current sheet
+    :type sheet_obj: ReportSheet
+    :param total_sheets_amount: the total number of sheets being reported on
+    :type total_sheets_amount: int
+
+    :return: the updated counter of the current sheet in sheets_to_report
+    :rtype: int
     """
     sheet = sheet_obj.sheet   #count 0 for 1st sheet
     mat_leftover = sheet_obj.mat_leftover
@@ -893,9 +862,9 @@ def write_html(folder, html_file_object, logo, project_name, sheets_to_report, r
 
     pieces = nest.get_sheet_property(sheet, nest.SheetProperties.PIECES_NUMBER)
 
-    write_sheet_info_and_picture(sheet, html_file_object, logo, counter_sheet_in_sheets, img_path, project_name, sheets_to_report, reports_pdfs_together, divide_material)
+    write_sheet_info_and_picture(sheet, html_file_object, logo, counter_sheet_in_sheets, img_path, project_name, sheets_to_report, reports_pdfs_together, divide_material, total_sheets_amount)
 
-    #write down the individual information about the components
+    #write down the individual information about the pieces on a sheet
     write_pieces_info(sheet, html_file_object)
 
     line = '</TABLE>\n' #closing mainTable
@@ -907,9 +876,21 @@ def write_html(folder, html_file_object, logo, project_name, sheets_to_report, r
     #dlg.output_box(f"Ein Fehler ist beim Schreiben der Datei '{total_report_path}' aufgetreten: {e}")
 
     line = '    </DIV>\n' #closing <DIV class="table-container">
+
     html_file_object.write(line)
     counter_sheet_in_sheets += 1  #the number of sheet in sheets_to_report
     return counter_sheet_in_sheets
+
+
+
+
+
+
+
+
+
+
+
 
 
 
