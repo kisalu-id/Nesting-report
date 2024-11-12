@@ -882,6 +882,96 @@ def write_html(folder, html_file_object, logo, project_name, sheets_to_report, r
     return counter_sheet_in_sheets
 
 
+def write_sheet_info_and_picture(sheet, html_file_object, logo, counter_sheet_in_sheets, img_path, project_name, sheets_to_report, reports_pdfs_together, divide_material, total_sheets_amount):
+    #write logo, project name, sheet picture, sheet stats (material, thickness, width, height, current_date)
+    """
+    Writes the individual sheet's information, including logo, project name, sheet picture, 
+    and various statistics (material, thickness, width, height, current date) 
+    to the HTML file.
+
+    :param sheet: the name of the sheet
+    :type sheet: str
+    :param html_file_object: the file object to which the HTML content will be written
+    :type html_file_object: file-like object
+    :param logo: the path to the logo to be included in the report
+    :type logo: str
+    :param counter_sheet_in_sheets: the index of this sheet among sheets_to_report
+    :type counter_sheet_in_sheets: int
+    :param img_path: the file path to the image of the sheet
+    :type img_path: str
+    :param project_name: the name of the project for inclusion in the report
+    :type project_name: str
+    :param sheets_to_report: a collection of sheets to be included in the report
+    :type sheets_to_report: list
+    :param reports_pdfs_together: whether the sheet report and material efficiency report will be combined into a single PDF (bool)
+    :type reports_pdfs_together: bool
+    :param divide_material: indicates if the report should be divided into separate PDFs by material types, or if it should be written in a single PDF
+    :type divide_material: bool
+    :param total_sheets_amount: the total number of sheets being reported on
+    :type total_sheets_amount: int
+    """
+
+    material = nest.get_sheet_property(sheet, nest.SheetProperties.MATERIAL)
+    thickness = nest.get_sheet_property(sheet, nest.SheetProperties.THICKNESS)
+    width = nest.get_sheet_property(sheet, nest.SheetProperties.WIDTH)
+    height = nest.get_sheet_property(sheet, nest.SheetProperties.HEIGHT)
+    current_date = datetime.datetime.now().strftime("%d.%m.%Y")
+
+    if not divide_material:
+        amount_of_sheets_to_report = total_sheets_amount
+    if divide_material:
+        amount_of_sheets_to_report = len(sheets_to_report)
+    
+    line = ' '
+
+    if not divide_material and not reports_pdfs_together and (counter_sheet_in_sheets + 1) < amount_of_sheets_to_report:    # and reports_pdfs_together and last_sheet == sheet (or if counter == amount_of_sheets_to_report):   # and reports_pdfs_together:
+        line += '\n<DIV class="page-break-after"></DIV>\n'
+    elif not divide_material and reports_pdfs_together:
+        line += '\n<DIV class="page-break-after"></DIV>\n'
+    #elif not divide_material and not reports_pdfs_together:
+    elif divide_material:
+        if counter_sheet_in_sheets < amount_of_sheets_to_report:
+            line += '\n<DIV class="page-break-after"></DIV>\n'
+            
+
+    line += '    <HEADER style="display: inline-block; width: 100%; text-align: left;">\n'
+    line += f'        <IMG src="file:///{logo}" alt="company Logo" style="vertical-align: middle; width: 60px; height: 60px; margin: 0 10px 15px 0;">\n'
+    line += f'        <SPAN style="font-size: 35px; padding: 0 0 8px 0;">Projekt: {os.path.splitext(project_name)[0]} </SPAN>\n'
+    line += '    </HEADER>\n'
+    
+    #table for sheet information
+    line += '\n    <DIV class="table-container">\n'
+    line += '    <TABLE class="mainTable">\n'
+    html_file_object.write(line)
+
+    line = f'        <TR>\n            <TD style="font-size:30px" colspan="6">{sheet}</TD>\n'
+
+    line += f'            <TD colspan="4" class="right-align">{current_date}</TD>\n        </TR>\n'
+    html_file_object.write(line)
+
+    #sheet information - width, height, thickness, name, material
+    line = f"""
+        <TR>
+            <TD align="middle">Breite</TD>
+            <TD align="middle">{round(width, 2)}</TD>
+            <TD align="middle">Höhe</TD>
+            <TD align="middle">{round(height, 2)}</TD>
+            <TD align="middle">Stärke</TD>
+            <TD align="middle">{round(thickness, 2)}</TD>
+            <TD align="middle">Material</TD>
+            <TD align="middle">{material}</TD>
+        </TR>
+
+    """
+    html_file_object.write(line)
+
+    #picture from the sheet
+    size_img = "width=\"1200pt\"" if width > 3 * height else "height=\"400pt\""
+    line = f'   <TR>\n      <TD colspan="10">\n         <IMG src="file:///{img_path}" {size_img}>\n     </TD>\n        </TR>\n'
+    html_file_object.write(line)
+
+
+
 
 
 
