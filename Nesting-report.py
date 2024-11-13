@@ -971,58 +971,51 @@ def write_sheet_info_and_picture(sheet, html_file_object, logo, counter_sheet_in
     html_file_object.write(line)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-def efficiency_for_sheet(html_file_object, pieces, area, mat_leftover, mat_reusable):
+def write_pieces_info(sheet, html_file_object):
+    #write down the individual information about the pieces on the sheet (n_piece_count, piece_label, piece_width,piece_height)
     """
-    Efficiency report for each sheet
-    
+    Writes individual information about the pieces on the specified sheet 
+    to the HTML file.
+
+    :param sheet: the name of the sheet containing the pieces
+    :type sheet: str
     :param html_file_object: the file object to which the HTML content will be written
-    :type html_file_object: file-like object (e.g., obtained via open() in write mode)
-    :param pieces: the number of pieces
-    :type pieces: int
-    :param area: the area of the sheet
-    :type area: float
-    :param mat_leftover: the percentage of not reusable material
-    :type mat_leftover: float
-    :param mat_reusable: the percentage of reusable material
-    :type mat_reusable: float
+    :type html_file_object: file-like object
     """
+    pieces_on_sheet = nest.get_pieces(sheet)
+    n_piece_count = 1
+    for piece in pieces_on_sheet:
+        piece_width = nest.get_piece_property(piece, nest.PieceProperties.WIDTH)
+        piece_height = nest.get_piece_property(piece, nest.PieceProperties.HEIGHT)
+        piece_label = nest.get_piece_property(piece, nest.PieceProperties.LABEL)
 
-    html_file_object.write(f"""
-    <TABLE class="adjustable-table">
-        <TH colspan="3" class="center-text">Effizienzbericht</TH>
-        <TR>
-            <TD>Gutteile</TD>
-            <TH colspan="2" align="left">{int(pieces)}</TH>
+        line = f"""
+        <TR class="adjustable-table" style="width: 100%;">
+            <TD align="middle">Nr.</TD>
+            <TD align="middle">{n_piece_count}</TD>
+            <TD align="middle">Bezeichnung</TD>
+            <TD align="middle">{piece_label}</TD>
+            <TD align="middle">Breite</TD>
+            <TD align="middle">{round(piece_width, 2)}</TD>
+            <TD align="middle">Höhe</TD>
+            <TD align="middle">{round(piece_height, 2)}</TD>
         </TR>
-        <TR>
-            <TD>Fläche der Platte</TD>
-            <TH colspan="2" align="left">{round(area, 2)} m²</TH>
-        </TR>
-        <TR>
-            <TD class="green">Wiederverwendbares Material</TD>
-            <TD class="green">{round(mat_reusable * area /100, 2)} m²</TD>
-            <TD class="green td-right">{round(mat_reusable, 2)}% der Platte</TD>
-        </TR>
-        <TR>
-            <TD class="grey">Nicht wiederverwendbares Material</TD>
-            <TD class="grey">{round(mat_leftover * area /100, 2) } m²</TD>
-            <TD class="grey td-right">{round(mat_leftover, 2)}% der Platte</TD>
-        </TR>
-    </TABLE>
-""")
+
+        """
+        html_file_object.write(line)
+        n_piece_count += 1
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
