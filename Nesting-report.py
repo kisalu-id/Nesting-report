@@ -1007,6 +1007,53 @@ def write_pieces_info(sheet, html_file_object):
 
 
 
+def efficiency_for_sheet(html_file_object, pieces, area, mat_leftover, mat_reusable):
+    """
+    Generates an efficiency report for the specified sheet, detailing the 
+    effectiveness of material usage.
+    This report includes calculations based on the area of the sheet, 
+    the percentage of reusable material, and the percentage of leftover material.
+
+    :param html_file_object: the file object to which the HTML report will be written
+    :type html_file_object: file-like object
+    :param pieces: a collection of individual pieces on the sheet
+    :type pieces: list
+    :param area: the total area of the sheet in square meters
+    :type area: float
+    :param mat_leftover: the percentage of material that is not reusable for the sheet
+    :type mat_leftover: float
+    :param mat_reusable: the percentage of material that is reusable for the sheet
+    :type mat_reusable: float
+    """
+
+    html_file_object.write(f"""
+    <TABLE class="adjustable-table">
+        <TH colspan="3" class="center-text">Effizienzbericht</TH>
+        <TR>
+            <TD>Gutteile</TD>
+            <TH colspan="2" align="left">{int(pieces)}</TH>
+        </TR>
+        <TR>
+            <TD>Fläche der Platte</TD>
+            <TH colspan="2" align="left">{round(area, 2)} m²</TH>
+        </TR>
+        <TR>
+            <TD class="green">Wiederverwendbares Material</TD>
+            <TD class="green">{round(mat_reusable * area /100, 2)} m²</TD>
+            <TD class="green td-right">{round(mat_reusable, 2)}% der Platte</TD>
+        </TR>
+        <TR>
+            <TD class="grey">Nicht wiederverwendbares Material</TD>
+            <TD class="grey">{round(mat_leftover * area /100, 2) } m²</TD>
+            <TD class="grey td-right">{round(mat_leftover, 2)}% der Platte</TD>
+        </TR>
+    </TABLE>
+""")
+
+
+
+
+
 
 
 
