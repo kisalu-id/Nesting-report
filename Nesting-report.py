@@ -15,7 +15,6 @@ from sclcore import execute_command_bool as exec_bool
 import config
 
 
-
 class ReportSheet():
     """
     Represents a report entry for a specific sheet, containing key metrics and an associated image.
@@ -163,7 +162,6 @@ class MaterialStats:
         html_file_object.write(line)
 
 
-
 def nesting_report():
     """
     The program loads settings from an .ini file, creates a new folder, and generates an HTML report with applied CSS. 
@@ -181,7 +179,7 @@ def nesting_report():
     report_file_path = create_report_file_path(folder, project_name)
 
     img_ext = ".jpg"
-    logo = "C:\...\company_logo.png"
+    logo = "C:\Program Files\companyProg\Bundles\company logo\company_logo.png"
 
     set_view_and_shading(nice_design)
 
@@ -325,6 +323,7 @@ def create_object_material_stats(material_and_thickness, sheets_values):
     )
 
 
+
 def run_config():
     """
     Executes the configuration process by calling the run_config() method from the config module.
@@ -374,6 +373,7 @@ def read_config_ini():
         rotate = config.get('Druckeinstellungen', 'rotate') #if True, rotate
         rotate = False if rotate == "0" or rotate =="False" else True
 
+        
         return rotate, general_folder, nice_design, reports_pdfs_together, only_measures_BW, divide_material
 
     except FileNotFoundError:
@@ -388,6 +388,7 @@ def read_config_ini():
         dlg.output_box(f"Ungültiger Wert für den Konfigurationsparameter: {e}")
     except Exception as e:
         dlg.output_box(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
+
 
 
 
@@ -432,7 +433,8 @@ def make_or_delete_folder(general_folder, project_name):
             os.makedirs(folder, exist_ok=False)
         except OSError as e:
             dlg.output_box(f"Fehler beim Ordner erstellen in {folder}")
-    return folder
+    return Folder
+
 
 
 def remove_existing_folder_with_same_name(folder):
@@ -477,7 +479,7 @@ def create_report_file_path(folder, poject_name):
     return report_file_path
 
 
-def set_view_and_shading(remove_color_fill):
+def set_view_and_shading(nice_design):
     """
     Sets the viewing perspective and shading options for the design environment.
     This function switches to a top view in wireframe mode. If `nice_design` is True, it applies shading to the view.
@@ -485,14 +487,11 @@ def set_view_and_shading(remove_color_fill):
     :param nice_design: specifies whether to use a nicer design with shading (True) or a simple wireframe view (False)
     :type nice_design: bool
     """
-    #switch to top view;
+    #switch to top view; wireframe
     view.set_std_view_eye()
-
-    if remove_color_fill:
-        exec_bool("SetWireFrame")
-    else:
+    # exec_bool("SetWireFrame")
+    if nice_design:
         exec_bool("SetShading")
-
 
 
 def sort_for_material():
@@ -559,7 +558,7 @@ def create_report(report_file_path, html_file, project_name, folder, img_ext, lo
     :type counter_sheet_in_sheets: int
     """
     
-
+    #TO DO: counter_sheet_in_sheets to have counter for sheets in sheets_to_report
     try:
         # #if reports_pdfs_together and divide_material:
         # #I ALWAYS count stuff separately for material_thickness
@@ -588,7 +587,7 @@ def create_report(report_file_path, html_file, project_name, folder, img_ext, lo
     except IOError as e:
         dlg.output_box(f"Ein Fehler ist beim Schreiben der Datei '{report_file_path}' aufgetreten: {e}")
     except Exception as e:
-        dlg.output_box(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
+        dlg.output_box(f" :C {e}")
 
 
 
@@ -631,6 +630,7 @@ def get_sheet_obj(folder, sheet, counter_sheet_in_sheets, img_ext):
     )
 
 
+
 def html_header_and_css(html_file_object, project_name, nice_design):
     """
     Write HTML header and chosen CSS style. 
@@ -656,7 +656,6 @@ def html_header_and_css(html_file_object, project_name, nice_design):
         write_nice_css(html_file_object)
     else:
         write_css_printing(html_file_object)
-
 
 
 def write_nice_css(html_file_object):
@@ -971,6 +970,7 @@ def write_sheet_info_and_picture(sheet, html_file_object, logo, counter_sheet_in
     html_file_object.write(line)
 
 
+
 def write_pieces_info(sheet, html_file_object):
     #write down the individual information about the pieces on the sheet (n_piece_count, piece_label, piece_width,piece_height)
     """
@@ -1004,6 +1004,8 @@ def write_pieces_info(sheet, html_file_object):
         """
         html_file_object.write(line)
         n_piece_count += 1
+
+
 
 
 
@@ -1051,48 +1053,16 @@ def efficiency_for_sheet(html_file_object, pieces, area, mat_leftover, mat_reusa
 """)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def close_html(html_file_object):
     """
-    Closing HTML document
+    Closing HTML document.
 
     :param html_file_object: the file object to which the HTML content will be written
     :type html_file_object: file-like object (e.g., obtained via open() in write mode)
     """
-    line = '</BODY></HTML>'
+    line = '</BODY>\n</HTML>'
     html_file_object.write(line)
 
-
-
-def to_pdf(report_html_path, output_pdf_path):
-    """
-    Convert HTML to PDF
-
-    :param report_html_path: the file path where the generated HTML report will be saved
-    :type report_html_path: str
-    :param output_pdf_path: the file path where the generated PDF report will be saved
-    :type output_pdf_path: str
-    """
-    do_debug()
-    path_to_wkhtmltopdf = r'C:\...\wkhtmltopdf.exe'
-    subprocess.call([path_to_wkhtmltopdf, report_html_path, output_pdf_path])
 
 
 
