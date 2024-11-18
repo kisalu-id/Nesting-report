@@ -169,7 +169,7 @@ def nesting_report():
     """
 
     #do_debug()
-    rotate, general_folder, nice_design, reports_pdfs_together, only_measures_BW, divide_material = read_config_ini()
+    do_report, rotate, general_folder, nice_design, remove_color_fill, reports_pdfs_together, divide_material, auto_open, open_all, ewd_file = read_config_ini()
 
     ###if project is not saved --> save it in temp folder or in a temp dircetory in the config file
     project_name = get_or_create_project_name()
@@ -364,14 +364,26 @@ def read_config_ini():
         reports_pdfs_together = config.get('Druckeinstellungen', 'reports_pdfs_together') #if True, reports_pdfs_together
         reports_pdfs_together = False if reports_pdfs_together == "0" or reports_pdfs_together =="False" else True
 
-        only_measures_BW = config.get('Druckeinstellungen', 'only_measures_BW') #if True, only_measures_BW
-        only_measures_BW = False if only_measures_BW == "0" or only_measures_BW =="False" else True
+        #only_measures_BW = config.get('Druckeinstellungen', 'only_measures_BW') #if True, only_measures_BW
+        #only_measures_BW = False if only_measures_BW == "0" or only_measures_BW =="False" else True
 
         divide_material = config.get('Druckeinstellungen', 'divide_material') #if True, divide the report depending on the material
-        divide_material = False if divide_material == "0" or divide_material =="False" else True
+        divide_material = False if divide_material == "0" or divide_material == "False" else True
         
         rotate = config.get('Druckeinstellungen', 'rotate') #if True, rotate
-        rotate = False if rotate == "0" or rotate =="False" else True
+        rotate = False if rotate == "0" or rotate == "False" else True
+
+        auto_open = config.get('Automatisch öffnen', 'auto_open') #if True, open automatically in Chrome
+        auto_open = False if auto_open == "0" or auto_open == "False" else True
+
+        open_all = config.get('Automatisch öffnen', 'open_all') #if True, open all of PDFs; if False and auto_open = True open only the first PDF
+        open_all = False if open_all == "0" or open_all == "False" else True
+
+        ewd_file = config.get('Programm wählen', 'ewd_file') #if True, .EWD, else .EWB
+        ewd_file = False if ewd_file == "0" or ewd_file == "False" else True
+
+        
+        return do_report, rotate, general_folder, nice_design, remove_color_fill, reports_pdfs_together, divide_material, auto_open, open_all, ewd_file
 
         
         return rotate, general_folder, nice_design, reports_pdfs_together, only_measures_BW, divide_material
