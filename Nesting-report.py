@@ -226,7 +226,7 @@ def nesting_report():
                 except Exception as e:
                     raise e
             output_pdf = os.path.join(folder, f'{project_name_mat_thick}.pdf')
-            to_pdf(report_file_path, output_pdf)
+            to_pdf(report_file_path, output_pdf, open_all)
         
         else: #if not divide_material:    - _in_ the loop of material_and_thickness
             if counter_for_full_pdf == 0: 
@@ -250,11 +250,11 @@ def nesting_report():
                 close_html(html_file)
 
             output_pdf = os.path.join(folder, f'{project_name}.pdf')
-            to_pdf(report_file_path, output_pdf)
+            to_pdf(report_file_path, output_pdf, open_all)
 
         else:   #if not reports_pdfs_together:     #write GEB in the separate PDF at the end
             output_pdf = os.path.join(folder, f'{project_name}.pdf')
-            to_pdf(report_file_path, output_pdf)
+            to_pdf(report_file_path, output_pdf, open_all)
 
             report_file_path = os.path.join(folder, f'Gesamteffizienbericht_{project_name}.html')
 
@@ -266,7 +266,7 @@ def nesting_report():
                 close_html(html_file_GEB)
 
                 output_pdf = os.path.join(folder, f'Gesamteffizienbericht_{project_name}.pdf')
-            to_pdf(report_file_path, output_pdf)
+            to_pdf(report_file_path, output_pdf, open_all)
 
     if divide_material and not reports_pdfs_together:
         report_file_path = os.path.join(folder, f'Gesamteffizienbericht_{project_name}.html')
@@ -278,7 +278,26 @@ def nesting_report():
             close_html(html_file_GEB)
 
         output_pdf = os.path.join(folder, f'Gesamteffizienbericht_{project_name}.pdf')
-        to_pdf(report_file_path, output_pdf)
+            to_pdf(report_file_path, output_pdf, open_all)
+        
+        open_pdf(auto_open, browser_path)
+
+
+
+def open_pdf(auto_open, browser_path):
+    """
+    Open HTML in a browser.
+
+    :param auto_open: specifies whether the PDF should be opened automatically
+    :type auto_open: bool
+    :param browser_path: the path to the browser executable for opening the PDF
+    :type browser_path: str
+    """
+    global PDF_LIST
+
+    if auto_open:
+        for pdf_path in PDF_LIST:
+            subprocess.Popen([browser_path, pdf_path], shell=False)
 
 
 
@@ -378,6 +397,8 @@ def read_config_ini():
 
         open_all = config.get('Automatisch öffnen', 'open_all') #if True, open all of PDFs; if False and auto_open = True open only the first PDF
         open_all = False if open_all == "0" or open_all == "False" else True
+
+        browser_path =  config.get('Automatisch öffnen', 'browser_path') #path for the browser
 
         ewd_file = config.get('Programm wählen', 'ewd_file') #if True, .EWD, else .EWB
         ewd_file = False if ewd_file == "0" or ewd_file == "False" else True
