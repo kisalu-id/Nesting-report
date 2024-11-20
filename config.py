@@ -23,6 +23,12 @@ def run_config():
 
     cfg.add_parameter('Pfad', 'Pfad\\report_pfad', 'Report Pfad wählen', ConfigParamType.DIRECTORY, ewd.explode_file_path('%TEMPPATH%'))
 
+    cfg.add_parameter('Automatisch öffnen', 'Automatisch öffnen\\auto_open', 'Den Report automatich in Browser öffnen', ConfigParamType.BOOLEAN, False)
+    cfg.add_parameter('Automatisch öffnen', 'Automatisch öffnen\\open_all', 'Alle Reports automatisch in Browser öffnen (sonst - nur den ersten Report)', ConfigParamType.BOOLEAN, False)
+    cfg.add_parameter('Automatisch öffnen', 'Automatisch öffnen\\browser_path', 'Browser Pfad wählen', ConfigParamType.FILE, ewd.explode_file_path('%ROOTPATH%'))
+
+    cfg.add_parameter('Programm wählen', 'Programm wählen\\ewd_file', 'Aktivieren für .EWD Dateien, sonst .EWB', ConfigParamType.BOOLEAN, True)
+
     cfg.run()
 
 
