@@ -280,11 +280,11 @@ def nesting_report():
         output_pdf = os.path.join(folder, f'Gesamteffizienbericht_{project_name}.pdf')
             to_pdf(report_file_path, output_pdf, open_all)
         
-        open_pdf(auto_open, browser_path)
+        if auto_open:
+            open_pdf(open_all, reports_pdfs_together, folder, browser_path)
 
 
-
-def open_pdf(auto_open, browser_path):
+def open_pdf(open_all, reports_pdfs_together, folder, browser_path):
     """
     Open HTML in a browser.
 
@@ -292,12 +292,35 @@ def open_pdf(auto_open, browser_path):
     :type auto_open: bool
     :param browser_path: the path to the browser executable for opening the PDF
     :type browser_path: str
-    """
-    global PDF_LIST
+    
+    Opens PDF report(s) in the browser based on the configuration.
 
-    if auto_open:
-        for pdf_path in PDF_LIST:
-            subprocess.Popen([browser_path, pdf_path], shell=False)
+    :param open_all: specifies whether to open all PDF files in the folder or just total report(s)
+    :type open_all: bool
+    :param reports_pdfs_together: whether sheet report and material efficiency report will be combined into a single PDF
+    :type reports_pdfs_together: bool
+    :param folder: the folder containing the PDF files
+    :type folder: str
+    :param browser_path: the file path to the browser executable, where the PDF files will be opened
+    :type browser_path: str
+    """
+
+    #do_debug()
+    pdfs_to_open = []
+
+    if not open_all and not reports_pdfs_together: #if the conditions for having separate PDFs for GEB are met AND if the option "open_all" was not chosen:
+        for filename in os.listdir(folder):
+            if filename.endswith(".pdf") and filename.startswith("Gesamteffizienzbericht_"):
+                pdfs_to_open.append(os.path.join(folder, filename))
+
+    else: #if report sheet is together with GEB in one PDF OR if a user chose to open every PDF:
+        for filename in os.listdir(folder):
+            if filename.endswith(".pdf"):
+                pdfs_to_open.append(os.path.join(folder, filename))
+
+
+    for pdf in pdfs_to_open:
+        subprocess.Popen([browser_path, pdf], shell=False)
 
 
 
