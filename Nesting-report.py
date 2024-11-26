@@ -169,12 +169,12 @@ def nesting_report():
     """
 
     #do_debug()
-    do_report, rotate, general_folder, nice_design, remove_color_fill, reports_pdfs_together, divide_material, auto_open, open_all, ewd_file = read_config_ini()
+    do_report, rotate, general_folder, nice_design, remove_color_fill, reports_pdfs_together, divide_material, auto_open, open_all, browser_path, ewd_file, show_warning_delete_folder = read_config_ini()
 
     ###if project is not saved --> save it in temp folder or in a temp dircetory in the config file
     project_name = get_or_create_project_name()
 
-    folder = make_or_delete_folder(general_folder, project_name)
+    folder = make_or_delete_folder(general_folder, project_name, show_warning_delete_folder)
 
     report_file_path = create_report_file_path(folder, project_name)
 
@@ -280,19 +280,9 @@ def nesting_report():
         output_pdf = os.path.join(folder, f'Gesamteffizienbericht_{project_name}.pdf')
             to_pdf(report_file_path, output_pdf, open_all)
         
-        if auto_open:
-            open_pdf(open_all, reports_pdfs_together, folder, browser_path)
-
 
 def open_pdf(open_all, reports_pdfs_together, folder, browser_path):
     """
-    Open HTML in a browser.
-
-    :param auto_open: specifies whether the PDF should be opened automatically
-    :type auto_open: bool
-    :param browser_path: the path to the browser executable for opening the PDF
-    :type browser_path: str
-    
     Opens PDF report(s) in the browser based on the configuration.
 
     :param open_all: specifies whether to open all PDF files in the folder or just total report(s)
@@ -321,7 +311,6 @@ def open_pdf(open_all, reports_pdfs_together, folder, browser_path):
 
     for pdf in pdfs_to_open:
         subprocess.Popen([browser_path, pdf], shell=False)
-
 
 
 def create_object_material_stats(material_and_thickness, sheets_values):
@@ -460,7 +449,7 @@ def get_or_create_project_name():
 
 
 
-def make_or_delete_folder(general_folder, project_name):
+def make_or_delete_folder(general_folder, project_name, show_warning_delete_folder):
     """
     Creates a folder for the project if it doesn't exist, or deletes and recreates it if it already exists.
 
@@ -474,36 +463,35 @@ def make_or_delete_folder(general_folder, project_name):
     :return: The full path to the created (or recreated) project folder.
     :rtype: str
     """
-    delete_folder = 1
     #subfolder with the project name: it will be deleted, if it already exists, then the new folder will be created
     #(so the date of creation of this folder on user's pc will be fresh -> easy to sort)
     folder = os.path.join(general_folder, f'{os.path.splitext(project_name)[0]}')
 
-    #if folder exists (i set this setting as always on), delete
-    if delete_folder and os.path.exists(folder):
+    if os.path.exists(folder):
         #maybe later add "ok" and "cancel"
-        remove_existing_folder_with_same_name(folder)
+        remove_existing_folder_with_same_name(folder, show_warning_delete_folder)
 
     else: #if folder doesn't exist, create
         try:
             os.makedirs(folder, exist_ok=False)
         except OSError as e:
             dlg.output_box(f"Fehler beim Ordner erstellen in {folder}")
-    return Folder
+    return folder
 
 
 
-def remove_existing_folder_with_same_name(folder):
+def remove_existing_folder_with_same_name(folder, show_warning_delete_folder):
     """
-    If delete_folder is True, remove the existing folder with the same name.
+    Remove the existing folder with the same name.
 
     :param folder: directory where the generated HTML and PDF reports will be saved
     :type folder: str
     """
     try:
         if os.path.exists(folder):
-            #dlg.output_box(f"Der Ordner '{folder}' und sein Inhalt werden gelöscht")
-            # maybe add ok / cancel in the config
+            if show_warning_delete_folder:
+                dlg.output_box(f"Der Ordner '{folder}' und sein Inhalt werden gelöscht")
+            # TODO: maybe add ok / cancel in the config
             for root, dirs, files in os.walk(folder, topdown=False):
                 for name in files:
                     os.remove(os.path.join(root, name))
@@ -513,7 +501,7 @@ def remove_existing_folder_with_same_name(folder):
         else:
             dlg.output_box(f"Der Ordner '{folder}' existiert nicht.")
     except Exception as e:
-        dlg.output_box(f"Ein Fehler ist aufgetreten: {e}")
+        dlg.output_box(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
 
 
 def create_report_file_path(folder, poject_name):
